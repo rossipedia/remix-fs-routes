@@ -10,13 +10,13 @@ import {
   unpluginFactory,
 } from '../src/unplugin.js'
 
-async function fixture(): Promise<{ cwd: string; routeModule: string }> {
+async function fixture(): Promise<{ cwd: string }> {
   let cwd = await mkdtemp(path.join(tmpdir(), 'remix-fs-routes-unplugin-'))
   let directory = path.join(cwd, 'app/routes/posts.$slug')
   await mkdir(directory, { recursive: true })
   let routeModule = path.join(directory, 'route.ts')
   await writeFile(routeModule, 'export const action = () => new Response()\n')
-  return { cwd, routeModule }
+  return { cwd }
 }
 
 function hooks(plugin: ReturnType<typeof unpluginFactory>) {
@@ -29,6 +29,16 @@ function hooks(plugin: ReturnType<typeof unpluginFactory>) {
 }
 
 describe('unplugin', () => {
+  it('rejects the removed write option', async () => {
+    let { cwd } = await fixture()
+    expect(() =>
+      unpluginFactory(
+        { cwd, write: false } as Parameters<typeof unpluginFactory>[0],
+        { framework: 'vite', versions: {} },
+      ),
+    ).toThrow('route companions are always written')
+  })
+
   it('writes physical artifacts and serves separate virtual modules', async () => {
     let { cwd } = await fixture()
     let { plugin, resolve, load } = hooks(
@@ -39,10 +49,13 @@ describe('unplugin', () => {
 
     let routes = await readFile(path.join(cwd, 'app/routes.ts'), 'utf8')
     let controller = await readFile(path.join(cwd, 'app/routes.controller.ts'), 'utf8')
-    let companion = await readFile(path.join(cwd, 'app/routes/posts.$slug/+route.ts'), 'utf8')
-    expect(routes).toContain('"posts.$slug": "/posts/:slug"')
+    let routeModule = await readFile(
+      path.join(cwd, 'app/routes/posts.$slug/+route.ts'),
+      'utf8',
+    )
+    expect(routes).toContain('"posts.$slug": route0')
     expect(controller).toContain('action as routeAction0')
-    expect(companion).toContain('routes["posts.$slug"]')
+    expect(routeModule).toContain('createRouteModule("/posts/:slug")')
     expect(addWatchFile).toHaveBeenCalledWith(path.join(cwd, 'app/routes'))
 
     let routesId = await resolve?.call(
@@ -60,7 +73,9 @@ describe('unplugin', () => {
     expect(routesId).toBe(`\0${defaultRoutesVirtualModuleId}`)
     expect(controllerId).toBe(`\0${defaultControllerVirtualModuleId}`)
     let loadContext = { addWatchFile: vi.fn() } as never
-    await expect(load?.call(loadContext, routesId as string)).resolves.toBe(routes)
+    await expect(load?.call(loadContext, routesId as string)).resolves.toContain(
+      '"posts.$slug": route0',
+    )
     await expect(load?.call(loadContext, controllerId as string)).resolves.toContain(
       `from "${defaultRoutesVirtualModuleId}"`,
     )
@@ -78,7 +93,7 @@ describe('unplugin', () => {
     await mkdir(aboutDirectory)
     await writeFile(aboutModule, 'export const action = () => new Response()\n')
     await plugin.watchChange?.call(context, aboutModule, { event: 'create' })
-    expect(await readFile(path.join(cwd, 'app/routes.ts'), 'utf8')).toContain('"about": "/about"')
+    expect(await readFile(path.join(cwd, 'app/routes.ts'), 'utf8')).toContain('"about": route0')
     expect(await readFile(path.join(cwd, 'app/routes.controller.ts'), 'utf8')).toContain(
       './routes/about/route.ts',
     )
@@ -94,34 +109,29 @@ describe('unplugin', () => {
     await Promise.all([deleted, created])
     expect(await readFile(path.join(cwd, 'app/routes.ts'), 'utf8')).not.toContain('"about"')
     expect(await readFile(path.join(cwd, 'app/routes.ts'), 'utf8')).toContain(
-      '"contact": "/contact"',
+      '"contact": route0',
     )
-    await expect(readFile(path.join(aboutDirectory, '+route.ts'), 'utf8')).rejects.toMatchObject({
+    await expect(readFile(path.join(cwd, 'app/routes/about/+route.ts'), 'utf8')).rejects.toMatchObject({
       code: 'ENOENT',
     })
-    expect(await readFile(path.join(contactDirectory, '+route.ts'), 'utf8')).toContain(
-      'routes["contact"]',
+    expect(await readFile(
+      path.join(cwd, 'app/routes/contact/+route.ts'),
+      'utf8',
+    )).toContain(
+      'createRouteModule("/contact")',
     )
   })
 
-  it('resolves importer-specific companions in virtual-only mode', async () => {
-    let { cwd, routeModule } = await fixture()
+  it('writes companions and invalidates Vite virtual modules after route changes', async () => {
+    let { cwd } = await fixture()
     let { plugin, resolve, load } = hooks(
-      unpluginFactory({ cwd, write: false }, { framework: 'vite', versions: {} }),
+      unpluginFactory({ cwd }, { framework: 'vite', versions: {} }),
     )
     await plugin.buildStart?.call({ addWatchFile: vi.fn(), error: vi.fn(), warn: vi.fn() } as never)
-    await expect(readFile(path.join(cwd, 'app/routes.ts'), 'utf8')).rejects.toMatchObject({
-      code: 'ENOENT',
-    })
-
-    let companionId = await resolve?.call({} as never, './+route.ts', routeModule, {
-      isEntry: false,
-    })
-    expect(companionId).toContain('remix-fs-routes:companion:posts.%24slug')
+    expect(
+      await readFile(path.join(cwd, 'app/routes/posts.$slug/+route.ts'), 'utf8'),
+    ).toContain('createRouteModule("/posts/:slug")')
     let loadContext = { addWatchFile: vi.fn() } as never
-    await expect(load?.call(loadContext, companionId as string)).resolves.toContain(
-      'routes["posts.$slug"]',
-    )
 
     let virtualModule = {}
     let invalidateModule = vi.fn()
@@ -155,7 +165,7 @@ describe('unplugin', () => {
       { isEntry: false },
     )
     await expect(load?.call(loadContext, routesId as string)).resolves.toContain(
-      '"about": "/about"',
+      '"about": route0',
     )
     expect(invalidateModule).toHaveBeenCalledWith(virtualModule)
     expect(send).toHaveBeenCalledWith({ type: 'full-reload' })

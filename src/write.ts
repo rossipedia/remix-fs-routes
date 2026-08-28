@@ -5,6 +5,8 @@ import { resolveOptions } from './convention.js'
 import { generateRouteArtifacts, generatedFileHeader } from './generate.js'
 import type {
   GenerateRouteArtifactsOptions,
+  GenerateRouteArtifactsResult,
+  GeneratedRouteArtifact,
   WriteRouteArtifactsOptions,
   WriteRouteArtifactsResult,
   WrittenRouteArtifact,
@@ -17,9 +19,32 @@ export async function writeRouteArtifacts(
 ): Promise<WriteRouteArtifactsResult> {
   let generationOptions = ignoreGeneratedOutputs(options)
   let generated = await generateRouteArtifacts(generationOptions)
+  return writeGeneratedArtifacts(options, generated, () => true)
+}
+
+export async function writeRouteTypes(
+  options: WriteRouteArtifactsOptions = {},
+): Promise<WriteRouteArtifactsResult> {
+  let generationOptions = ignoreGeneratedOutputs(options)
+  let generated = await generateRouteArtifacts(generationOptions)
+  return writeGeneratedRouteTypes(options, generated)
+}
+
+export function writeGeneratedRouteTypes(
+  options: WriteRouteArtifactsOptions,
+  generated: GenerateRouteArtifactsResult,
+): Promise<WriteRouteArtifactsResult> {
+  return writeGeneratedArtifacts(options, generated, isTypeArtifact)
+}
+
+async function writeGeneratedArtifacts(
+  options: WriteRouteArtifactsOptions,
+  generated: GenerateRouteArtifactsResult,
+  include: (artifact: GeneratedRouteArtifact) => boolean,
+): Promise<WriteRouteArtifactsResult> {
   let artifacts: WrittenRouteArtifact[] = []
 
-  for (let artifact of generated.artifacts) {
+  for (let artifact of generated.artifacts.filter(include)) {
     let current = await readOptionalFile(artifact.output)
     if (
       current !== undefined &&
@@ -38,12 +63,25 @@ export async function writeRouteArtifacts(
     }
   }
 
-  let expectedCompanions = new Set(
+  let expectedTypes = new Set(
     generated.artifacts
-      .filter((artifact) => artifact.kind === 'companion')
+      .filter(isTypeArtifact)
       .map((artifact) => path.resolve(artifact.output)),
   )
-  let removed = await findStaleCompanions(options, expectedCompanions)
+  let expectedRouteModules = new Set(
+    generated.artifacts
+      .filter((artifact) => artifact.kind === 'route-module')
+      .map((artifact) => path.resolve(artifact.output)),
+  )
+  let includesRouteModules = generated.artifacts.some(
+    (artifact) => artifact.kind === 'route-module' && include(artifact),
+  )
+  let removed = [
+    ...(await findStaleRouteTypes(options, expectedTypes)),
+    ...(includesRouteModules
+      ? await findStaleRouteModules(options, expectedRouteModules)
+      : []),
+  ].sort((a, b) => a.localeCompare(b))
   if (!options.check) {
     for (let output of removed) await unlink(output)
   }
@@ -54,6 +92,10 @@ export async function writeRouteArtifacts(
     removed,
     manifest: generated.manifest,
   }
+}
+
+function isTypeArtifact(artifact: GeneratedRouteArtifact): boolean {
+  return artifact.kind === 'virtual-types'
 }
 
 export function ignoreGeneratedOutputs<T extends GenerateRouteArtifactsOptions>(options: T): T {
@@ -74,7 +116,50 @@ export function ignoreGeneratedOutputs<T extends GenerateRouteArtifactsOptions>(
   }
 }
 
-async function findStaleCompanions(
+async function findStaleRouteTypes(
+  options: GenerateRouteArtifactsOptions,
+  expected: Set<string>,
+): Promise<string[]> {
+  let resolved = resolveOptions(options)
+  let typegenDirectory = path.resolve(
+    resolved.cwd,
+    options.typegenDirectory ?? '.remix-fs-routes/types',
+  )
+  let candidates = await findGeneratedTypeFiles(typegenDirectory)
+  let stale: string[] = []
+  for (let candidate of candidates) {
+    if (expected.has(path.resolve(candidate))) continue
+    let source = await readOptionalFile(candidate)
+    if (source?.startsWith(generatedFileHeader)) stale.push(candidate)
+  }
+  return stale.sort((a, b) => a.localeCompare(b))
+}
+
+async function findGeneratedTypeFiles(directory: string): Promise<string[]> {
+  let entries
+  try {
+    entries = await readdir(directory, { withFileTypes: true })
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []
+    throw error
+  }
+  let files: string[] = []
+  for (let entry of entries) {
+    let candidate = path.join(directory, entry.name)
+    if (entry.isDirectory()) {
+      files.push(...await findGeneratedTypeFiles(candidate))
+    } else if (
+      entry.isFile() &&
+      (entry.name === 'virtual.d.ts' ||
+        (path.basename(directory) === '+types' && entry.name.endsWith('.d.ts')))
+    ) {
+      files.push(candidate)
+    }
+  }
+  return files
+}
+
+async function findStaleRouteModules(
   options: GenerateRouteArtifactsOptions,
   expected: Set<string>,
 ): Promise<string[]> {
@@ -86,15 +171,15 @@ async function findStaleCompanions(
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []
     throw error
   }
-  let stale: string[] = []
+  let legacy: string[] = []
   for (let directory of directories) {
     if (!directory.isDirectory()) continue
     let candidate = path.join(rootDirectory, directory.name, '+route.ts')
     if (expected.has(path.resolve(candidate))) continue
     let source = await readOptionalFile(candidate)
-    if (source?.startsWith(generatedFileHeader)) stale.push(candidate)
+    if (source?.startsWith(generatedFileHeader)) legacy.push(candidate)
   }
-  return stale.sort((a, b) => a.localeCompare(b))
+  return legacy
 }
 
 async function writeAtomic(output: string, source: string): Promise<void> {

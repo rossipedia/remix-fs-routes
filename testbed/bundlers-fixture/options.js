@@ -5,7 +5,6 @@ export const fixtureEntry = fileURLToPath(new URL('./app/entry.js', import.meta.
 
 export const pluginOptions = {
   cwd: fixtureDirectory,
-  write: false,
   routesOutput: 'app/routes.js',
   controllerOutput: 'app/routes.controller.js',
 }

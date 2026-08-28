@@ -4,9 +4,33 @@ import { tmpdir } from 'node:os'
 
 import { describe, expect, it } from 'vitest'
 
-import { watchRouteArtifacts, type WriteRouteArtifactsResult } from '../src/index.js'
+import {
+  watchRouteArtifacts,
+  watchRouteTypes,
+  type WriteRouteArtifactsResult,
+} from '../src/index.js'
 
 describe('watchRouteArtifacts', () => {
+  it('supports virtual-declaration-only watch mode', async () => {
+    let cwd = await mkdtemp(path.join(tmpdir(), 'remix-fs-routes-type-watch-'))
+    let indexDirectory = path.join(cwd, 'app/routes/_index')
+    await mkdir(indexDirectory, { recursive: true })
+    await writeFile(path.join(indexDirectory, 'route.ts'), 'export const action = () => new Response()\n')
+
+    let watcher = await watchRouteTypes({ cwd, pollingIntervalMs: 20 })
+    try {
+      await expect(readFile(path.join(cwd, 'app/routes.ts'), 'utf8')).rejects.toMatchObject({
+        code: 'ENOENT',
+      })
+      expect(await readFile(
+        path.join(cwd, '.remix-fs-routes/types/virtual.d.ts'),
+        'utf8',
+      )).toContain('readonly "_index": Route<\'ANY\', "/">')
+    } finally {
+      await watcher.close()
+    }
+  })
+
   it('reconciles route additions and removals without overlapping writes', async () => {
     let cwd = await mkdtemp(path.join(tmpdir(), 'remix-fs-routes-watch-'))
     let indexDirectory = path.join(cwd, 'app/routes/_index')
@@ -49,10 +73,9 @@ describe('watchRouteArtifacts', () => {
       await mkdir(aboutDirectory)
       await writeFile(aboutModule, 'export const action = () => new Response()\n')
       await added
-      expect(await readFile(path.join(cwd, 'app/routes.ts'), 'utf8')).toContain('"about": "/about"')
-      expect(await readFile(path.join(aboutDirectory, '+route.ts'), 'utf8')).toContain(
-        'routes["about"]',
-      )
+      expect(await readFile(path.join(cwd, 'app/routes.ts'), 'utf8')).toContain('"about": route1')
+      let aboutCompanion = path.join(cwd, 'app/routes/about/+route.ts')
+      expect(await readFile(aboutCompanion, 'utf8')).toContain('createRouteModule("/about")')
 
       let removed = nextResult(
         (result) => !result.manifest.routes.some((route) => route.id === 'about'),
@@ -60,7 +83,7 @@ describe('watchRouteArtifacts', () => {
       await unlink(aboutModule)
       await removed
       expect(await readFile(path.join(cwd, 'app/routes.ts'), 'utf8')).not.toContain('"about"')
-      await expect(readFile(path.join(aboutDirectory, '+route.ts'), 'utf8')).rejects.toMatchObject({
+      await expect(readFile(aboutCompanion, 'utf8')).rejects.toMatchObject({
         code: 'ENOENT',
       })
     } finally {
@@ -110,7 +133,7 @@ describe('watchRouteArtifacts', () => {
         'export const action = () => new Response()\n',
       )
       await recovered
-      expect(await readFile(path.join(cwd, 'app/routes.ts'), 'utf8')).toContain('"about": "/about"')
+      expect(await readFile(path.join(cwd, 'app/routes.ts'), 'utf8')).toContain('"about": route0')
     } finally {
       await watcher.close()
     }

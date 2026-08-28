@@ -3,7 +3,7 @@ import path from 'node:path'
 import chokidar, { type FSWatcher } from 'chokidar'
 
 import { resolveOptions } from './convention.js'
-import { writeRouteArtifacts } from './write.js'
+import { writeRouteArtifacts, writeRouteTypes } from './write.js'
 import type { WriteRouteArtifactsOptions, WriteRouteArtifactsResult } from './types.js'
 
 export interface WatchRouteArtifactsHandlers {
@@ -26,6 +26,21 @@ export async function watchRouteArtifacts(
   options: WatchRouteArtifactsOptions = {},
   handlers: WatchRouteArtifactsHandlers = {},
 ): Promise<RouteArtifactsWatcher> {
+  return watchArtifacts(options, handlers, writeRouteArtifacts)
+}
+
+export async function watchRouteTypes(
+  options: WatchRouteArtifactsOptions = {},
+  handlers: WatchRouteArtifactsHandlers = {},
+): Promise<RouteArtifactsWatcher> {
+  return watchArtifacts(options, handlers, writeRouteTypes)
+}
+
+async function watchArtifacts(
+  options: WatchRouteArtifactsOptions,
+  handlers: WatchRouteArtifactsHandlers,
+  write: (options: WriteRouteArtifactsOptions) => Promise<WriteRouteArtifactsResult>,
+): Promise<RouteArtifactsWatcher> {
   if (options.check) throw new TypeError('Watch mode cannot be combined with check mode.')
 
   let resolved = resolveOptions(options)
@@ -44,7 +59,8 @@ export async function watchRouteArtifacts(
     running = running.then(async () => {
       if (closed) return
       try {
-        handlers.onResult?.(await writeRouteArtifacts(options))
+        let result = await write(options)
+        handlers.onResult?.(result)
       } catch (error) {
         handlers.onError?.(error)
       }

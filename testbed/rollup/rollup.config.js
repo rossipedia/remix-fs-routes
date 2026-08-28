@@ -1,6 +1,6 @@
 import remixFsRoutes from 'remix-fs-routes/rollup'
 
-import { fixtureEntry, pluginOptions } from '../shared/options.js'
+import { fixtureEntry, pluginOptions } from '../bundlers-fixture/options.js'
 
 export default {
   input: fixtureEntry,

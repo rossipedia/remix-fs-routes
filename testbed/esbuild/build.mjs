@@ -1,7 +1,7 @@
 import { build } from 'esbuild'
 import remixFsRoutes from 'remix-fs-routes/esbuild'
 
-import { fixtureEntry, pluginOptions } from '../shared/options.js'
+import { fixtureEntry, pluginOptions } from '../bundlers-fixture/options.js'
 
 await build({
   entryPoints: [fixtureEntry],

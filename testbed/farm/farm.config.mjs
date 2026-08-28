@@ -1,7 +1,7 @@
 import { defineConfig } from '@farmfe/core'
 import remixFsRoutes from 'remix-fs-routes/farm'
 
-import { fixtureEntry, pluginOptions } from '../shared/options.js'
+import { fixtureEntry, pluginOptions } from '../bundlers-fixture/options.js'
 
 export default defineConfig({
   compilation: {

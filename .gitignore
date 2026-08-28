@@ -2,5 +2,8 @@ node_modules/
 dist/
 coverage/
 *.log
-testbed/cli/app/routes/**/+route.ts
+.remix-fs-routes/
+testbed/**/+route.ts
+testbed/bundlers-fixture/app/routes.js
+testbed/bundlers-fixture/app/routes.controller.js
 testbed/*/dist/

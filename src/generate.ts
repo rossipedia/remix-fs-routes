@@ -21,6 +21,10 @@ export async function generateRouteArtifacts(
     resolved.cwd,
     options.controllerOutput ?? 'app/routes.controller.ts',
   )
+  let typegenDirectory = path.resolve(
+    resolved.cwd,
+    options.typegenDirectory ?? '.remix-fs-routes/types',
+  )
   let routesExportName = options.routesExportName ?? 'routes'
   let controllerExportName = options.controllerExportName ?? 'controller'
   validateIdentifier(routesExportName, 'routes export')
@@ -29,11 +33,29 @@ export async function generateRouteArtifacts(
   validateOutputExtension(controllerOutput)
 
   let manifest = await scanRoutes(options)
-  let artifacts: GeneratedRouteArtifact[] = [
+  let artifacts: GeneratedRouteArtifact[] = []
+
+  for (let entry of manifest.routes) {
+    let routeModule = path.resolve(resolved.appDirectory, entry.file)
+    artifacts.push({
+      kind: 'route-module',
+      output: path.join(path.dirname(routeModule), '+route.ts'),
+      routeId: entry.id,
+      source: generateRouteModuleSource(entry.pattern),
+    })
+  }
+
+  artifacts.push(
     {
       kind: 'routes',
       output: routesOutput,
-      source: generateRoutesSource(manifest, routesExportName, isTypeScriptOutput(routesOutput)),
+      source: generateRoutesSource(
+        manifest,
+        resolved.appDirectory,
+        routesOutput,
+        routesExportName,
+        isTypeScriptOutput(routesOutput),
+      ),
     },
     {
       kind: 'controller',
@@ -47,38 +69,45 @@ export async function generateRouteArtifacts(
         controllerExportName,
       ),
     },
-  ]
-
-  for (let entry of manifest.routes) {
-    let routeModule = path.resolve(resolved.appDirectory, entry.file)
-    let output = path.join(path.dirname(routeModule), '+route.ts')
-    artifacts.push({
-      kind: 'companion',
-      output,
-      routeId: entry.id,
-      source: generateCompanionSource(output, routesOutput, routesExportName, entry.id),
-    })
-  }
+    {
+      kind: 'virtual-types',
+      output: path.join(typegenDirectory, 'virtual.d.ts'),
+      source: generateVirtualTypesSource(
+        manifest,
+        routesVirtualModuleId(options),
+        controllerVirtualModuleId(options),
+        routesExportName,
+        controllerExportName,
+      ),
+    },
+  )
 
   return { artifacts, manifest }
 }
 
 function generateRoutesSource(
   manifest: RouteManifest,
+  appDirectory: string,
+  output: string,
   exportName: string,
   typescript: boolean,
 ): string {
+  let imports = manifest.routes.map((entry, index) => {
+    let routeModule = path.resolve(appDirectory, entry.file)
+    let companion = path.join(path.dirname(routeModule), '+route.ts')
+    return `import { route as route${index} } from ${JSON.stringify(relativeImport(output, companion))}`
+  })
   let definitions = manifest.routes
-    .map((entry) => `  ${JSON.stringify(entry.id)}: ${JSON.stringify(entry.pattern)},`)
+    .map((entry, index) => `  ${JSON.stringify(entry.id)}: route${index},`)
     .join('\n')
   let serializedManifest = indent(JSON.stringify(manifest.routes, null, 2))
   return [
     generatedFileHeader,
-    "import { route } from 'remix/routes'",
+    ...imports,
     '',
-    `export const ${exportName} = route({`,
+    `export const ${exportName} = {`,
     definitions,
-    '})',
+    '}',
     '',
     `export const routeManifest = ${serializedManifest}${typescript ? ' as const' : ''}`,
     '',
@@ -115,19 +144,69 @@ function generateControllerSource(
   ].join('\n')
 }
 
-function generateCompanionSource(
-  output: string,
-  routesOutput: string,
-  routesExportName: string,
-  routeId: string,
-): string {
+function generateRouteModuleSource(pattern: string): string {
   return [
     generatedFileHeader,
-    `import { ${routesExportName} } from ${JSON.stringify(relativeImport(output, routesOutput))}`,
+    "import { createRouteModule } from 'remix-fs-routes/route-module'",
     '',
-    `export const route = ${routesExportName}[${JSON.stringify(routeId)}]`,
+    `export const { route, createAction } = createRouteModule(${JSON.stringify(pattern)})`,
     '',
   ].join('\n')
+}
+
+function generateVirtualTypesSource(
+  manifest: RouteManifest,
+  routesModuleId: string,
+  controllerModuleId: string,
+  routesExportName: string,
+  controllerExportName: string,
+): string {
+  let routeTypes = manifest.routes
+    .map((entry) => `    readonly ${JSON.stringify(entry.id)}: Route<'ANY', ${JSON.stringify(absolutePattern(entry.pattern))}>`)
+    .join('\n')
+  return [
+    generatedFileHeader,
+    `declare module ${JSON.stringify(routesModuleId)} {`,
+    "  import type { Route } from 'remix/routes'",
+    '',
+    `  export const ${routesExportName}: {`,
+    routeTypes,
+    '  }',
+    `  export const routeManifest: readonly {`,
+    '    readonly id: string',
+    '    readonly file: string',
+    '    readonly path?: string',
+    '    readonly pattern: string',
+    '    readonly parentId?: string',
+    '    readonly index: boolean',
+    '  }[]',
+    '}',
+    '',
+    `declare module ${JSON.stringify(controllerModuleId)} {`,
+    "  import type { Controller } from 'remix/router'",
+    `  import type { ${routesExportName} } from ${JSON.stringify(routesModuleId)}`,
+    '',
+    `  export const ${controllerExportName}: Controller<typeof ${routesExportName}>`,
+    '}',
+    '',
+  ].join('\n')
+}
+
+function absolutePattern(pattern: string): string {
+  return pattern.startsWith('/') ? pattern : `/${pattern}`
+}
+
+function routesVirtualModuleId(options: GenerateRouteArtifactsOptions): string {
+  return 'routesVirtualModuleId' in options && typeof options.routesVirtualModuleId === 'string'
+    ? options.routesVirtualModuleId
+    : 'virtual:remix-fs-routes/routes'
+}
+
+function controllerVirtualModuleId(options: GenerateRouteArtifactsOptions): string {
+  return 'controllerVirtualModuleId' in options &&
+    typeof options.controllerVirtualModuleId === 'string'
+    ? options.controllerVirtualModuleId
+    : 'virtual:remix-fs-routes/controller'
 }
 
 function validateIdentifier(value: string, label: string): void {

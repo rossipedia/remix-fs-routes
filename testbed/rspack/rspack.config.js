@@ -2,7 +2,7 @@ import path from 'node:path'
 
 import remixFsRoutes from 'remix-fs-routes/rspack'
 
-import { fixtureEntry, pluginOptions } from '../shared/options.js'
+import { fixtureEntry, pluginOptions } from '../bundlers-fixture/options.js'
 
 export default {
   mode: 'production',

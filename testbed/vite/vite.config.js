@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite'
 import remixFsRoutes from 'remix-fs-routes/vite'
 
-import { fixtureEntry, pluginOptions } from '../shared/options.js'
+import { fixtureEntry, pluginOptions } from '../bundlers-fixture/options.js'
 
 export default defineConfig({
   plugins: [remixFsRoutes(pluginOptions)],

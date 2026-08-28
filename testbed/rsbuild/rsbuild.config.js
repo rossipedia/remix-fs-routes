@@ -1,7 +1,7 @@
 import { defineConfig } from '@rsbuild/core'
 import remixFsRoutes from 'remix-fs-routes/rsbuild'
 
-import { fixtureEntry, pluginOptions } from '../shared/options.js'
+import { fixtureEntry, pluginOptions } from '../bundlers-fixture/options.js'
 
 export default defineConfig({
   plugins: [remixFsRoutes(pluginOptions)],

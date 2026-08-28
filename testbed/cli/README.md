@@ -13,5 +13,7 @@ npm run dev --workspace remix-fs-routes-testbed-cli
 ```
 
 The `routes` script scans the endpoint folders in `app/routes/` and generates `app/routes.ts`,
-`app/routes.controller.ts`, and a local `+route.ts` companion for each endpoint. Each authored
-`route.ts` exports its own Remix `action`; the generated controller assembles those exports.
+`app/routes.controller.ts`, and a concrete `+route.ts` companion beside every authored route. Each
+authored `route.tsx` imports the route-bound `createAction` factory from its companion; the generated
+route map and controller assemble the companion routes and authored actions. Route actions render
+`remix/ui` component trees through the shared `Page` component and `remix/ui/server`.

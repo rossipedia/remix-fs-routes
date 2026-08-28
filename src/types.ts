@@ -47,9 +47,15 @@ export interface GenerateRouteArtifactsOptions extends FileSystemRoutesOptions {
   routesExportName?: string
   /** Export name for the Remix controller. Defaults to `controller`. */
   controllerExportName?: string
+  /** Generated virtual-module declarations, relative to `cwd`. Defaults to `.remix-fs-routes/types`. */
+  typegenDirectory?: string
 }
 
-export type GeneratedRouteArtifactKind = 'routes' | 'controller' | 'companion'
+export type GeneratedRouteArtifactKind =
+  | 'routes'
+  | 'controller'
+  | 'route-module'
+  | 'virtual-types'
 
 export interface GeneratedRouteArtifact {
   kind: GeneratedRouteArtifactKind
@@ -76,7 +82,7 @@ export interface WrittenRouteArtifact extends GeneratedRouteArtifact {
 export interface WriteRouteArtifactsResult {
   changed: boolean
   artifacts: WrittenRouteArtifact[]
-  /** Stale generated companions removed, or reported by check mode. */
+  /** Stale generated declarations and legacy companions removed, or reported by check mode. */
   removed: string[]
   manifest: RouteManifest
 }
@@ -86,6 +92,4 @@ export interface RemixFsRoutesPluginOptions extends GenerateRouteArtifactsOption
   routesVirtualModuleId?: string
   /** Virtual controller module id. Defaults to `virtual:remix-fs-routes/controller`. */
   controllerVirtualModuleId?: string
-  /** Write physical route artifacts. Defaults to `true`. */
-  write?: boolean
 }

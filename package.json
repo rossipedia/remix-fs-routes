@@ -10,8 +10,7 @@
   "files": [
     "dist",
     "README.md",
-    "LICENSE",
-    "virtual.d.ts"
+    "LICENSE"
   ],
   "bin": {
     "remix-fs-routes": "./dist/cli.js"
@@ -24,6 +23,10 @@
     "./unplugin": {
       "types": "./dist/unplugin.d.ts",
       "import": "./dist/unplugin.js"
+    },
+    "./route-module": {
+      "types": "./dist/route-module.d.ts",
+      "import": "./dist/route-module.js"
     },
     "./vite": {
       "types": "./dist/vite.d.ts",
@@ -60,9 +63,6 @@
     "./bun": {
       "types": "./dist/bun.d.ts",
       "import": "./dist/bun.js"
-    },
-    "./virtual": {
-      "types": "./virtual.d.ts"
     }
   },
   "scripts": {

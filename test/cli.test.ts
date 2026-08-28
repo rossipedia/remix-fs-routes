@@ -42,6 +42,14 @@ describe('CLI argument parsing', () => {
     expect(() => parseArguments(['--wat'])).toThrow('Unknown argument')
   })
 
+  it('supports declaration-only generation', () => {
+    expect(parseArguments(['typegen', '--typegen-directory', '.cache/routes', '--watch'])).toEqual({
+      typegen: true,
+      typegenDirectory: '.cache/routes',
+      watch: true,
+    })
+  })
+
   it('recognizes an npm-style symlink as the executable entry', async () => {
     let directory = await mkdtemp(path.join(tmpdir(), 'remix-fs-routes-bin-'))
     let entry = path.join(directory, 'remix-fs-routes')

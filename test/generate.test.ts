@@ -8,6 +8,7 @@ import {
   generateRouteArtifacts,
   generatedFileHeader,
   writeRouteArtifacts,
+  writeRouteTypes,
 } from '../src/index.js'
 
 async function project(): Promise<string> {
@@ -21,24 +22,30 @@ async function project(): Promise<string> {
 }
 
 describe('route artifact generation', () => {
-  it('emits a route map, controller, and route-specific companions', async () => {
+  it('emits bound route companions, central runtime modules, and virtual declarations', async () => {
     let cwd = await project()
     let result = await generateRouteArtifacts({ cwd })
     let routes = result.artifacts.find((artifact) => artifact.kind === 'routes')!
     let controller = result.artifacts.find((artifact) => artifact.kind === 'controller')!
-    let userCompanion = result.artifacts.find((artifact) => artifact.routeId === 'users.$id')!
+    let userRoute = result.artifacts.find((artifact) => artifact.routeId === 'users.$id')!
+    let virtualTypes = result.artifacts.find((artifact) => artifact.kind === 'virtual-types')!
 
-    expect(routes.source).toContain("import { route } from 'remix/routes'")
-    expect(routes.source).toContain('"users.$id": "/users/:id",')
+    expect(routes.source).toContain('route as route1')
+    expect(routes.source).toContain('"users.$id": route1,')
     expect(controller.source).toContain('createController(routes, {')
     expect(controller.source).toContain('action as routeAction1')
     expect(controller.source).toContain('"users.$id": routeAction1')
-    expect(userCompanion.source).toContain('export const route = routes["users.$id"]')
+    expect(userRoute.source).toContain('createRouteModule("/users/:id")')
+    expect(userRoute.output).toContain('app/routes/users.$id/+route.ts')
+    expect(virtualTypes.source).toContain(
+      'readonly "users.$id": Route<\'ANY\', "/users/:id">',
+    )
     expect(result.artifacts.map((artifact) => artifact.kind)).toEqual([
+      'route-module',
+      'route-module',
       'routes',
       'controller',
-      'companion',
-      'companion',
+      'virtual-types',
     ])
   })
 
@@ -61,27 +68,50 @@ describe('route artifact generation', () => {
     expect(stale.artifacts.find((artifact) => artifact.kind === 'routes')?.changed).toBe(true)
   })
 
-  it('removes only stale generated companions and protects user files', async () => {
+  it('can write only virtual-module declarations', async () => {
+    let cwd = await project()
+    let result = await writeRouteTypes({ cwd })
+
+    expect(result.artifacts.map((artifact) => artifact.kind)).toEqual(['virtual-types'])
+    await expect(readFile(path.join(cwd, 'app/routes.ts'), 'utf8')).rejects.toMatchObject({
+      code: 'ENOENT',
+    })
+    expect(await readFile(
+      path.join(cwd, '.remix-fs-routes/types/virtual.d.ts'),
+      'utf8',
+    )).toContain('readonly "users.$id": Route<\'ANY\', "/users/:id">')
+  })
+
+  it('removes stale generated types and legacy companions while protecting user files', async () => {
     let cwd = await project()
     await writeRouteArtifacts({ cwd })
     let staleDirectory = path.join(cwd, 'app/routes/old')
     await mkdir(staleDirectory)
     let staleCompanion = path.join(staleDirectory, '+route.ts')
     await writeFile(staleCompanion, `${generatedFileHeader}\nexport {}\n`)
+    let staleType = path.join(
+      cwd,
+      '.remix-fs-routes/types/app/routes/old/+types/route.d.ts',
+    )
+    await mkdir(path.dirname(staleType), { recursive: true })
+    await writeFile(staleType, `${generatedFileHeader}\nexport {}\n`)
 
     let checked = await writeRouteArtifacts({ cwd, check: true })
-    expect(checked.removed).toEqual([staleCompanion])
+    expect(checked.removed).toEqual([staleType, staleCompanion].sort((a, b) => a.localeCompare(b)))
     await writeRouteArtifacts({ cwd })
     await expect(readFile(staleCompanion, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' })
+    await expect(readFile(staleType, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' })
 
     let userCompanion = path.join(cwd, 'app/routes/users.$id/+route.ts')
     await writeFile(userCompanion, 'export const mine = true\n')
     await expect(writeRouteArtifacts({ cwd })).rejects.toThrow('Refusing to overwrite user-owned')
+    expect(await readFile(userCompanion, 'utf8')).toBe('export const mine = true\n')
 
     await writeFile(userCompanion, `${generatedFileHeader}\nexport {}\n`)
     let routesOutput = path.join(cwd, 'app/routes.ts')
     await writeFile(routesOutput, 'export const handwritten = true\n')
     await expect(writeRouteArtifacts({ cwd })).rejects.toThrow(`user-owned file ${routesOutput}`)
+    expect(await readFile(userCompanion, 'utf8')).toBe(`${generatedFileHeader}\nexport {}\n`)
   })
 
   it('supports custom outputs and validates export names and output syntax', async () => {
@@ -90,6 +120,7 @@ describe('route artifact generation', () => {
       cwd,
       routesOutput: 'generated/contract.js',
       controllerOutput: 'generated/controller.js',
+      typegenDirectory: 'generated/types',
       routesExportName: 'appRoutes',
       controllerExportName: 'appController',
     })
@@ -97,9 +128,9 @@ describe('route artifact generation', () => {
     let controller = generated.artifacts.find((artifact) => artifact.kind === 'controller')!
     expect(routes.source).not.toContain('as const')
     expect(controller.source).toContain('export const appController = createController(appRoutes')
-    expect(generated.artifacts.find((artifact) => artifact.routeId === '_index')?.source).toContain(
-      '../../../generated/contract.js',
-    )
+    let indexRoute = generated.artifacts.find((artifact) => artifact.routeId === '_index')!
+    expect(indexRoute.output).toContain('app/routes/_index/+route.ts')
+    expect(indexRoute.source).toContain('createRouteModule("/")')
 
     await expect(generateRouteArtifacts({ cwd, routesExportName: 'not-valid' })).rejects.toThrow(
       'Invalid routes export name',

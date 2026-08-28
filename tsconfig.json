@@ -10,5 +10,5 @@
     "skipLibCheck": true,
     "types": ["node", "vitest/globals"]
   },
-  "include": ["src", "test", "tsdown.config.ts", "vitest.config.ts", "virtual.d.ts"]
+  "include": ["src", "test", "tsdown.config.ts", "vitest.config.ts"]
 }

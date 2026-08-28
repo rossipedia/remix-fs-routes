@@ -8,9 +8,13 @@ describe('CLI-generated route modules', () => {
   it('serves the index and links through generated hrefs', async () => {
     let router = createAppRouter()
     let response = await router.fetch(new Request(`http://test${routes._index.href()}`))
+    let body = await response.text()
 
     assert.equal(response.status, 200)
-    assert.match(await response.text(), /remix-fs-routes CLI testbed/)
+    assert.match(body, /remix-fs-routes CLI testbed/)
+    assert.match(body, /data-rmx=/)
+    assert.match(body, /prefers-color-scheme: dark/)
+    assert.match(body, /color-scheme: light dark/)
   })
 
   it('provides typed dynamic parameters to route actions', async () => {

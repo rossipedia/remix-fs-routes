@@ -16,10 +16,11 @@ unplugin adapter.
 | `testbed/farm` | `remix-fs-routes/farm` |
 | `testbed/bun` | `remix-fs-routes/bun` |
 
-The bundler workspaces share the route tree and runtime assertions in `testbed/shared`. Each one
-builds `app/entry.js` with `write: false`, imports the generated controller and route map through the
-default virtual module IDs, then executes the bundle. The fixture checks both an index route and a
-dynamic `posts.$slug` route, including their generated `./+route.js` companions.
+The bundler workspaces share the route tree and runtime assertions in `testbed/bundlers-fixture`.
+Each plugin writes concrete route companions and central artifacts, while `app/entry.js` imports the
+controller and route map through the default virtual module IDs. The fixture checks both an index
+route and a dynamic `posts.$slug` route, including the route-bound action factory used by authored
+modules.
 
 Run the complete matrix from the repository root:
 

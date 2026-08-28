@@ -1,7 +1,7 @@
 import { defineConfig } from 'rolldown'
 import remixFsRoutes from 'remix-fs-routes/rolldown'
 
-import { fixtureEntry, pluginOptions } from '../shared/options.js'
+import { fixtureEntry, pluginOptions } from '../bundlers-fixture/options.js'
 
 export default defineConfig({
   input: fixtureEntry,
