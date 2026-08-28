@@ -2,12 +2,16 @@
   "name": "remix-fs-routes-testbed-vite",
   "private": true,
   "type": "module",
+  "imports": {
+    "#fixture": "remix-fs-routes-testbed-bundlers-fixture/options"
+  },
   "scripts": {
     "build": "vite build",
     "test": "node dist/bundle.mjs",
     "check": "pnpm build && pnpm test"
   },
   "devDependencies": {
+    "remix-fs-routes-testbed-bundlers-fixture": "workspace:*",
     "remix-fs-routes": "workspace:*",
     "vite": "^7.3.6"
   }

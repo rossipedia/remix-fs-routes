@@ -2,12 +2,16 @@
   "name": "remix-fs-routes-testbed-rolldown",
   "private": true,
   "type": "module",
+  "imports": {
+    "#fixture": "remix-fs-routes-testbed-bundlers-fixture/options"
+  },
   "scripts": {
     "build": "rolldown --config",
     "test": "node dist/bundle.mjs",
     "check": "pnpm build && pnpm test"
   },
   "devDependencies": {
+    "remix-fs-routes-testbed-bundlers-fixture": "workspace:*",
     "remix-fs-routes": "workspace:*",
     "rolldown": "1.2.5"
   }

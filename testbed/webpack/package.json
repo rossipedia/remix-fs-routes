@@ -2,12 +2,16 @@
   "name": "remix-fs-routes-testbed-webpack",
   "private": true,
   "type": "module",
+  "imports": {
+    "#fixture": "remix-fs-routes-testbed-bundlers-fixture/options"
+  },
   "scripts": {
     "build": "webpack --config webpack.config.js",
     "test": "node dist/bundle.mjs",
     "check": "pnpm build && pnpm test"
   },
   "devDependencies": {
+    "remix-fs-routes-testbed-bundlers-fixture": "workspace:*",
     "remix-fs-routes": "workspace:*",
     "webpack": "^5.109.2",
     "webpack-cli": "^7.2.2"

@@ -5,6 +5,9 @@
     "types": ["node"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "paths": {
+      "#/*.js": ["../bundlers-fixture/app/*.js"]
+    },
     "target": "ESNext",
     "allowImportingTsExtensions": true,
     "rewriteRelativeImportExtensions": true,
@@ -15,5 +18,5 @@
     "jsxImportSource": "remix/ui",
     "noEmit": true
   },
-  "include": ["app", "server.ts"]
+  "include": ["server.ts"]
 }

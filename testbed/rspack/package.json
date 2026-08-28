@@ -2,6 +2,9 @@
   "name": "remix-fs-routes-testbed-rspack",
   "private": true,
   "type": "module",
+  "imports": {
+    "#fixture": "remix-fs-routes-testbed-bundlers-fixture/options"
+  },
   "scripts": {
     "build": "rspack build --config rspack.config.js",
     "test": "node dist/bundle.mjs",
@@ -10,6 +13,7 @@
   "devDependencies": {
     "@rspack/cli": "^2.1.10",
     "@rspack/core": "^2.1.10",
+    "remix-fs-routes-testbed-bundlers-fixture": "workspace:*",
     "remix-fs-routes": "workspace:*"
   }
 }

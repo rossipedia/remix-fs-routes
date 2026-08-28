@@ -16,11 +16,15 @@ unplugin adapter.
 | `testbed/farm` | `remix-fs-routes/farm` |
 | `testbed/bun` | `remix-fs-routes/bun` |
 
-The bundler workspaces share the route tree and runtime assertions in `testbed/bundlers-fixture`.
-Each plugin writes concrete route companions and central artifacts, while `app/entry.js` imports the
-controller and route map through the default virtual module IDs. The fixture checks both an index
-route and a dynamic `posts.$slug` route, including the route-bound action factory used by authored
-modules.
+Every workspace shares the TSX route tree, Remix UI renderer, generated route contract, and runtime
+assertions in `testbed/bundlers-fixture`. The CLI points the standalone generator at that fixture and
+imports its physical router. Each plugin uses the same generation options while `app/entry.ts`
+imports the controller and route map through the default virtual module IDs.
+
+The build workspaces configure their native TSX pipeline for the shared `remix/ui` JSX runtime:
+Bun and esbuild use automatic JSX settings, Farm uses its official JSX plugin, the webpack family
+uses the shared TypeScript loader, and the Rollup family uses the shared transform plugin. These are
+build-only differences; every integration executes the same authored route modules.
 
 Run the complete matrix from the repository root:
 

@@ -1,6 +1,8 @@
 # CLI testbed
 
-This Remix 3 app exercises the standalone `remix-fs-routes` CLI. It does not load an unplugin adapter.
+This Remix 3 server exercises the standalone `remix-fs-routes` CLI. It does not load an unplugin
+adapter. Its generation scripts point at the shared TSX application in `testbed/bundlers-fixture`,
+which is also consumed by every bundler testbed.
 
 From the repository root:
 
@@ -12,8 +14,7 @@ pnpm --filter remix-fs-routes-testbed-cli test
 pnpm --filter remix-fs-routes-testbed-cli dev
 ```
 
-The `routes` script scans the endpoint folders in `app/routes/` and generates `app/routes.ts`,
-`app/routes.controller.ts`, and a concrete `+route.ts` companion beside every authored route. Each
-authored `action.tsx` imports the route-bound `createAction` factory from its companion; the generated
-route map and controller assemble the companion routes and authored actions. Route actions render
-`remix/ui` component trees through the shared `Page` component and `remix/ui/server`.
+The `routes` script scans `testbed/bundlers-fixture/app/routes/` and writes the shared `routes.ts`,
+`routes.controller.ts`, and concrete `+route.ts` companions there. Route actions render `remix/ui`
+component trees through the shared `Page` component and `remix/ui/server`. The CLI server imports
+the physical router; bundler testbeds consume the same contract through virtual modules.

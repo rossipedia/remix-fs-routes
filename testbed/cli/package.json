@@ -3,22 +3,23 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "routes": "remix-fs-routes generate",
-    "routes:watch": "remix-fs-routes generate --watch",
-    "routes:check": "remix-fs-routes generate --check",
+    "routes": "remix-fs-routes generate --app ../bundlers-fixture/app --routes-output ../bundlers-fixture/app/routes.ts --controller-output ../bundlers-fixture/app/routes.controller.ts --typegen-directory ../bundlers-fixture/.remix-fs-routes/types",
+    "routes:watch": "pnpm routes --watch",
+    "routes:check": "pnpm routes --check",
     "predev": "pnpm routes",
-    "dev": "NODE_ENV=development node --watch --import remix/node-tsx server.ts",
+    "dev": "NODE_ENV=development node --watch --import remix-fs-routes-testbed-bundlers-fixture/resolve-app-imports --import remix/node-tsx server.ts",
     "prestart": "pnpm routes",
-    "start": "NODE_ENV=production node --import remix/node-tsx server.ts",
+    "start": "NODE_ENV=production node --import remix-fs-routes-testbed-bundlers-fixture/resolve-app-imports --import remix/node-tsx server.ts",
     "pretest": "pnpm routes",
-    "test": "NODE_ENV=test node --import remix/node-tsx --test",
+    "test": "NODE_ENV=test node --import remix-fs-routes-testbed-bundlers-fixture/resolve-app-imports --import remix/node-tsx --test ../bundlers-fixture/app/router.test.ts",
     "pretypecheck": "pnpm routes",
     "typecheck": "tsc --noEmit",
     "precheck": "pnpm routes",
     "check": "pnpm routes:check && pnpm typecheck && pnpm test"
   },
   "dependencies": {
-    "remix": "3.0.0-beta.10"
+    "remix": "3.0.0-beta.10",
+    "remix-fs-routes-testbed-bundlers-fixture": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

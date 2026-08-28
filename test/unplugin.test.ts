@@ -54,6 +54,7 @@ describe('unplugin', () => {
       'utf8',
     )
     expect(routes).toContain('"posts.$slug": "/posts/:slug"')
+    expect(routes).toContain('export function href<const pattern extends RoutePattern>')
     expect(controller).toContain('import routeAction0 from')
     expect(routeModule).toContain('routes["posts.$slug"]')
     expect(routeModule).not.toMatch(/from ["']remix-fs-routes/)
@@ -75,7 +76,7 @@ describe('unplugin', () => {
     expect(controllerId).toBe(`\0${defaultControllerVirtualModuleId}`)
     let loadContext = { addWatchFile: vi.fn() } as never
     await expect(load?.call(loadContext, routesId as string)).resolves.toContain(
-      'export { routes, routeManifest } from',
+      'export { href, routes, routeManifest } from',
     )
     await expect(load?.call(loadContext, controllerId as string)).resolves.toContain(
       `from "${defaultRoutesVirtualModuleId}"`,
@@ -166,7 +167,7 @@ describe('unplugin', () => {
       { isEntry: false },
     )
     await expect(load?.call(loadContext, routesId as string)).resolves.toContain(
-      'export { routes, routeManifest } from',
+      'export { href, routes, routeManifest } from',
     )
     expect(invalidateModule).toHaveBeenCalledWith(virtualModule)
     expect(send).toHaveBeenCalledWith({ type: 'full-reload' })

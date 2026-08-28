@@ -2,6 +2,9 @@
   "name": "remix-fs-routes-testbed-esbuild",
   "private": true,
   "type": "module",
+  "imports": {
+    "#fixture": "remix-fs-routes-testbed-bundlers-fixture/options"
+  },
   "scripts": {
     "build": "node build.mjs",
     "test": "node dist/bundle.mjs",
@@ -9,6 +12,7 @@
   },
   "devDependencies": {
     "esbuild": "^0.27.7",
+    "remix-fs-routes-testbed-bundlers-fixture": "workspace:*",
     "remix-fs-routes": "workspace:*"
   }
 }

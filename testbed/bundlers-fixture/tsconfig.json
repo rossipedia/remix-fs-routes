@@ -1,11 +1,21 @@
 {
   "compilerOptions": {
     "strict": true,
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "types": ["node"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "paths": {
+      "#/*.js": ["./app/*.js"]
+    },
     "target": "ESNext",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "remix/ui",
     "noEmit": true,
     "skipLibCheck": true
   },
-  "include": ["typecheck.ts", ".remix-fs-routes/types/**/*"]
+  "include": ["app", "typecheck.ts", ".remix-fs-routes/types/**/*"]
 }

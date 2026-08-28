@@ -2,8 +2,17 @@
   "name": "remix-fs-routes-testbed-bundlers-fixture",
   "private": true,
   "type": "module",
+  "exports": {
+    "./build": "./build-plugin.js",
+    "./options": "./options.js",
+    "./resolve-app-imports": "./resolve-app-imports.js",
+    "./router.js": "./app/router.ts"
+  },
+  "imports": {
+    "#/*.js": "./app/*.js"
+  },
   "scripts": {
-    "pretypecheck": "remix-fs-routes generate --routes-output app/routes.js --controller-output app/routes.controller.js",
+    "pretypecheck": "remix-fs-routes generate",
     "typecheck": "tsc --noEmit",
     "check": "pnpm typecheck"
   },
@@ -11,6 +20,8 @@
     "remix": "3.0.0-beta.10"
   },
   "devDependencies": {
-    "remix-fs-routes": "workspace:*"
+    "@types/node": "^24.0.0",
+    "remix-fs-routes": "workspace:*",
+    "typescript": "^5.9.0"
   }
 }

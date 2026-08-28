@@ -1,7 +1,7 @@
 import { defineConfig } from '@rsbuild/core'
 import remixFsRoutes from 'remix-fs-routes/rsbuild'
 
-import { fixtureEntry, pluginOptions } from '../bundlers-fixture/options.js'
+import { fixtureAppDirectory, fixtureEntry, fixtureTsxLoader, pluginOptions } from '#fixture'
 
 export default defineConfig({
   plugins: [remixFsRoutes(pluginOptions)],
@@ -24,6 +24,18 @@ export default defineConfig({
           request?.startsWith('remix/') ? callback(null, request) : callback(),
       ]
       config.output = { ...config.output, module: true }
+      config.resolve = {
+        ...config.resolve,
+        alias: { ...config.resolve?.alias, '#': fixtureAppDirectory },
+        extensionAlias: { ...config.resolve?.extensionAlias, '.js': ['.ts', '.tsx', '.js'] },
+      }
+      config.module ??= { rules: [] }
+      config.module.rules ??= []
+      config.module.rules.push({
+        test: /\.[jt]sx?$/,
+        include: fixtureAppDirectory,
+        use: fixtureTsxLoader,
+      })
     },
   },
 })

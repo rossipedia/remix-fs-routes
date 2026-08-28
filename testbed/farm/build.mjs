@@ -1,5 +1,5 @@
 import { build } from '@farmfe/core'
 
-import config from './farm.config.mjs'
+import config from '#config'
 
 await build(config)

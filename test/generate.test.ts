@@ -34,6 +34,9 @@ describe('route artifact generation', () => {
 
     expect(routes.source).toContain("import { route } from 'remix/routes'")
     expect(routes.source).toContain('"users.$id": "/users/:id",')
+    expect(routes.source).toContain('export type RoutePattern = "/" | "/users/:id"')
+    expect(routes.source).toContain('export function href<const pattern extends RoutePattern>')
+    expect(routes.source).toContain('return createHref(pattern, ...args)')
     expect(support.source).toContain('export function createRouteAction()')
     expect(supportTypes.source).toContain('export declare function createRouteAction<')
     expect(controller.source).toContain('createController(routes, {')
@@ -46,6 +49,8 @@ describe('route artifact generation', () => {
     expect(virtualTypes.source).toContain(
       'readonly "users.$id": Route<\'ANY\', "/users/:id">',
     )
+    expect(virtualTypes.source).toContain('export type RoutePattern = "/" | "/users/:id"')
+    expect(virtualTypes.source).toContain('export function href<const pattern extends RoutePattern>')
     expect(result.artifacts.map((artifact) => artifact.kind)).toEqual([
       'route-module',
       'route-module',
@@ -135,6 +140,8 @@ describe('route artifact generation', () => {
     let routes = generated.artifacts.find((artifact) => artifact.kind === 'routes')!
     let controller = generated.artifacts.find((artifact) => artifact.kind === 'controller')!
     expect(routes.source).not.toContain('as const')
+    expect(routes.source).toContain("import { createHref } from 'remix/route-pattern/href'")
+    expect(routes.source).toContain('export function href(pattern, ...args)')
     expect(controller.source).toContain('export const appController = createController(appRoutes')
     let indexRoute = generated.artifacts.find((artifact) => artifact.routeId === '_index')!
     expect(indexRoute.output).toContain('app/routes/_index/+route.ts')

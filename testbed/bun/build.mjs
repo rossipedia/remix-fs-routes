@@ -1,6 +1,6 @@
 import remixFsRoutes from 'remix-fs-routes/bun'
 
-import { fixtureEntry, pluginOptions } from '../bundlers-fixture/options.js'
+import { buildAppImports, fixtureEntry, pluginOptions } from '#fixture'
 
 let result = await Bun.build({
   entrypoints: [fixtureEntry],
@@ -8,8 +8,9 @@ let result = await Bun.build({
   naming: 'bundle.mjs',
   external: ['remix/*'],
   format: 'esm',
+  jsx: { runtime: 'automatic', importSource: 'remix/ui' },
   target: 'node',
-  plugins: [remixFsRoutes(pluginOptions)],
+  plugins: [buildAppImports, remixFsRoutes(pluginOptions)],
 })
 
 if (!result.success) {

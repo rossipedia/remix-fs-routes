@@ -1,17 +1,17 @@
 import * as assert from 'remix/assert'
 import { describe, it } from 'remix/test'
 
-import { createAppRouter } from './router.ts'
-import { routes } from './routes.ts'
+import { createAppRouter } from '#/router.js'
+import { href } from '#/routes.js'
 
-describe('CLI-generated route modules', () => {
+describe('shared generated route modules', () => {
   it('serves the index and links through generated hrefs', async () => {
     let router = createAppRouter()
-    let response = await router.fetch(new Request(`http://test${routes._index.href()}`))
+    let response = await router.fetch(new Request(`http://test${href('/')}`))
     let body = await response.text()
 
     assert.equal(response.status, 200)
-    assert.match(body, /remix-fs-routes CLI testbed/)
+    assert.match(body, /remix-fs-routes testbed/)
     assert.match(body, /data-rmx=/)
     assert.match(body, /prefers-color-scheme: dark/)
     assert.match(body, /color-scheme: light dark/)
@@ -19,8 +19,8 @@ describe('CLI-generated route modules', () => {
 
   it('provides typed dynamic parameters to route actions', async () => {
     let router = createAppRouter()
-    let href = routes['posts.$slug'].href({ slug: 'typed-routes' })
-    let response = await router.fetch(new Request(`http://test${href}`))
+    let postHref = href('/posts/:slug', { slug: 'typed-routes' })
+    let response = await router.fetch(new Request(`http://test${postHref}`))
 
     assert.equal(response.status, 200)
     assert.match(await response.text(), /Post: typed-routes/)
@@ -28,13 +28,11 @@ describe('CLI-generated route modules', () => {
 
   it('matches both forms of an optional segment', async () => {
     let router = createAppRouter()
-    assert.equal(routes['($lang).hello'].href(), '/hello')
-    assert.equal(routes['($lang).hello'].href({ lang: 'es' }), '/es/hello')
-    let defaultResponse = await router.fetch(
-      new Request(`http://test${routes['($lang).hello'].href()}`),
-    )
+    assert.equal(href('/(:lang/)hello'), '/hello')
+    assert.equal(href('/(:lang/)hello', { lang: 'es' }), '/es/hello')
+    let defaultResponse = await router.fetch(new Request(`http://test${href('/(:lang/)hello')}`))
     let spanishResponse = await router.fetch(
-      new Request(`http://test${routes['($lang).hello'].href({ lang: 'es' })}`),
+      new Request(`http://test${href('/(:lang/)hello', { lang: 'es' })}`),
     )
 
     assert.match(await defaultResponse.text(), /Hello \(default\)/)

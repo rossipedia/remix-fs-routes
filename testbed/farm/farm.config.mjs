@@ -1,12 +1,15 @@
 import { defineConfig } from '@farmfe/core'
+import react from '@farmfe/plugin-react'
 import remixFsRoutes from 'remix-fs-routes/farm'
+import { farmAppImports } from 'remix-fs-routes-testbed-bundlers-fixture/build'
 
-import { fixtureEntry, pluginOptions } from '../bundlers-fixture/options.js'
+import { fixtureEntry, pluginOptions } from '#fixture'
 
 export default defineConfig({
   compilation: {
     input: { bundle: fixtureEntry },
     external: ['^remix/'],
+    persistentCache: false,
     output: {
       path: 'dist',
       entryFilename: 'bundle.mjs',
@@ -14,5 +17,9 @@ export default defineConfig({
       targetEnv: 'node',
     },
   },
-  plugins: [remixFsRoutes(pluginOptions)],
+  plugins: [
+    farmAppImports,
+    react({ runtime: 'automatic', importSource: 'remix/ui', refresh: false }),
+    remixFsRoutes(pluginOptions),
+  ],
 })

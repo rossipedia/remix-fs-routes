@@ -1,6 +1,4 @@
-import { createHtmlResponse } from 'remix/response/html'
 import { css, type Handle, type RemixNode } from 'remix/ui'
-import { renderToString } from 'remix/ui/server'
 
 interface PageProps {
   children?: RemixNode
@@ -24,8 +22,8 @@ export function Page(handle: Handle<PageProps>) {
   )
 }
 
-export async function page(title: string, content: RemixNode) {
-  return createHtmlResponse(await renderToString(<Page title={title}>{content}</Page>))
+export function page(title: string, content: RemixNode) {
+  return <Page title={title}>{content}</Page>
 }
 
 const pageStyle = css({
@@ -44,12 +42,8 @@ const pageStyle = css({
   maxWidth: '48rem',
   minHeight: '100vh',
   padding: '4rem 1rem',
-  '& a': {
-    color: 'var(--link-color)',
-  },
-  '& a:visited': {
-    color: 'var(--visited-link-color)',
-  },
+  '& a': { color: 'var(--link-color)' },
+  '& a:visited': { color: 'var(--visited-link-color)' },
   '& code': {
     background: 'var(--code-background)',
     borderRadius: '0.25rem',

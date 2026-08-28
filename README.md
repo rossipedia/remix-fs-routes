@@ -56,6 +56,19 @@ export default createAction({
 })
 ```
 
+The generated routes module also exports a typed `href()` helper keyed by URL pattern instead of
+route ID. Patterns are limited to discovered routes, and their required and optional params are
+inferred:
+
+```ts
+import { href } from './routes.ts'
+
+href('/')
+href('/blog/:slug', { slug: 'hello-remix' })
+href('/(:lang/)categories')
+href('/(:lang/)categories', { lang: 'es' })
+```
+
 Every action module must provide a default export. It may re-export an action implemented elsewhere
 with `export { default } from './handler.ts'`.
 
@@ -180,6 +193,6 @@ duplicate URL patterns.
 
 ## Testbed
 
-[`testbed/cli/`](./testbed/cli) is a runnable Remix 3 application for the standalone CLI. The other
-workspaces under [`testbed/`](./testbed) build and execute the same virtual-route fixture through
-every exported bundler adapter; see the [testbed matrix](./testbed/README.md) for commands.
+[`testbed/cli/`](./testbed/cli) runs the standalone CLI against the same TSX Remix UI route tree used
+by every bundler workspace. The CLI imports physical generated modules, while the plugin testbeds
+consume their virtual counterparts; see the [testbed matrix](./testbed/README.md) for commands.

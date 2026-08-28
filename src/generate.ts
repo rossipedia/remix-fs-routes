@@ -108,12 +108,32 @@ function generateRoutesSource(
   exportName: string,
   typescript: boolean,
 ): string {
+  let routePatterns = [...new Set(manifest.routes.map((entry) => absolutePattern(entry.pattern)))]
   let definitions = manifest.routes
     .map((entry) => `  ${JSON.stringify(entry.id)}: ${JSON.stringify(entry.pattern)},`)
     .join('\n')
   let serializedManifest = indent(JSON.stringify(manifest.routes, null, 2))
+  let hrefSource = typescript
+    ? [
+        `export type RoutePattern = ${routePatterns.map((pattern) => JSON.stringify(pattern)).join(' | ')}`,
+        '',
+        'export function href<const pattern extends RoutePattern>(',
+        '  pattern: pattern,',
+        '  ...args: CreateHrefArgs<pattern>',
+        '): string {',
+        '  return createHref(pattern, ...args)',
+        '}',
+      ]
+    : [
+        'export function href(pattern, ...args) {',
+        '  return createHref(pattern, ...args)',
+        '}',
+      ]
   return [
     generatedFileHeader,
+    typescript
+      ? "import { createHref, type CreateHrefArgs } from 'remix/route-pattern/href'"
+      : "import { createHref } from 'remix/route-pattern/href'",
     "import { route } from 'remix/routes'",
     '',
     `export const ${exportName} = route({`,
@@ -121,6 +141,8 @@ function generateRoutesSource(
     '})',
     '',
     `export const routeManifest = ${serializedManifest}${typescript ? ' as const' : ''}`,
+    '',
+    ...hrefSource,
     '',
   ].join('\n')
 }
@@ -242,13 +264,21 @@ function generateVirtualTypesSource(
   routesExportName: string,
   controllerExportName: string,
 ): string {
+  let routePatterns = [...new Set(manifest.routes.map((entry) => absolutePattern(entry.pattern)))]
   let routeTypes = manifest.routes
     .map((entry) => `    readonly ${JSON.stringify(entry.id)}: Route<'ANY', ${JSON.stringify(absolutePattern(entry.pattern))}>`)
     .join('\n')
   return [
     generatedFileHeader,
     `declare module ${JSON.stringify(routesModuleId)} {`,
+    "  import type { CreateHrefArgs } from 'remix/route-pattern/href'",
     "  import type { Route } from 'remix/routes'",
+    '',
+    `  export type RoutePattern = ${routePatterns.map((pattern) => JSON.stringify(pattern)).join(' | ')}`,
+    '  export function href<const pattern extends RoutePattern>(',
+    '    pattern: pattern,',
+    '    ...args: CreateHrefArgs<pattern>',
+    '  ): string',
     '',
     `  export const ${routesExportName}: {`,
     routeTypes,

@@ -2,7 +2,7 @@ import path from 'node:path'
 
 import remixFsRoutes from 'remix-fs-routes/rspack'
 
-import { fixtureEntry, pluginOptions } from '../bundlers-fixture/options.js'
+import { fixtureAppDirectory, fixtureEntry, fixtureTsxLoader, pluginOptions } from '#fixture'
 
 export default {
   mode: 'production',
@@ -16,6 +16,13 @@ export default {
       request?.startsWith('remix/') ? callback(null, request) : callback(),
   ],
   optimization: { minimize: false },
+  module: {
+    rules: [{ test: /\.[jt]sx?$/, include: fixtureAppDirectory, use: fixtureTsxLoader }],
+  },
+  resolve: {
+    alias: { '#': fixtureAppDirectory },
+    extensionAlias: { '.js': ['.ts', '.tsx', '.js'] },
+  },
   plugins: [remixFsRoutes(pluginOptions)],
   output: {
     path: path.resolve('dist'),

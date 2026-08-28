@@ -199,7 +199,7 @@ function generateVirtualRoutesSource(
   let routesModule = routesArtifact.output.split(path.sep).join('/')
   return [
     generatedFileHeader,
-    `export { ${routesExportName}, routeManifest } from ${JSON.stringify(routesModule)}`,
+    `export { href, ${routesExportName}, routeManifest } from ${JSON.stringify(routesModule)}`,
     '',
   ].join('\n')
 }

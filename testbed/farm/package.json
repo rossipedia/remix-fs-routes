@@ -2,6 +2,10 @@
   "name": "remix-fs-routes-testbed-farm",
   "private": true,
   "type": "module",
+  "imports": {
+    "#config": "./farm.config.mjs",
+    "#fixture": "remix-fs-routes-testbed-bundlers-fixture/options"
+  },
   "scripts": {
     "build": "node build.mjs",
     "test": "node dist/bundle.mjs",
@@ -9,6 +13,8 @@
   },
   "devDependencies": {
     "@farmfe/core": "^1.7.11",
-    "remix-fs-routes": "workspace:*"
+    "@farmfe/plugin-react": "1.2.6",
+    "remix-fs-routes": "workspace:*",
+    "remix-fs-routes-testbed-bundlers-fixture": "workspace:*"
   }
 }
