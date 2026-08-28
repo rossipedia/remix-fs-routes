@@ -1,0 +1,13 @@
+{
+  "name": "remix-fs-routes-testbed-rsbuild",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "rsbuild build",
+    "test": "node dist/bundle.mjs",
+    "check": "npm run build && npm test"
+  },
+  "devDependencies": {
+    "@rsbuild/core": "^2.1.13"
+  }
+}

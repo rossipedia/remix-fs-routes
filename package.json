@@ -1,0 +1,98 @@
+{
+  "name": "remix-fs-routes",
+  "version": "0.1.0",
+  "description": "File-system route conventions for Remix 3",
+  "type": "module",
+  "workspaces": [
+    "testbed/*"
+  ],
+  "license": "MIT",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "virtual.d.ts"
+  ],
+  "bin": {
+    "remix-fs-routes": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./unplugin": {
+      "types": "./dist/unplugin.d.ts",
+      "import": "./dist/unplugin.js"
+    },
+    "./vite": {
+      "types": "./dist/vite.d.ts",
+      "import": "./dist/vite.js"
+    },
+    "./rollup": {
+      "types": "./dist/rollup.d.ts",
+      "import": "./dist/rollup.js"
+    },
+    "./rolldown": {
+      "types": "./dist/rolldown.d.ts",
+      "import": "./dist/rolldown.js"
+    },
+    "./webpack": {
+      "types": "./dist/webpack.d.ts",
+      "import": "./dist/webpack.js"
+    },
+    "./rspack": {
+      "types": "./dist/rspack.d.ts",
+      "import": "./dist/rspack.js"
+    },
+    "./rsbuild": {
+      "types": "./dist/rsbuild.d.ts",
+      "import": "./dist/rsbuild.js"
+    },
+    "./esbuild": {
+      "types": "./dist/esbuild.d.ts",
+      "import": "./dist/esbuild.js"
+    },
+    "./farm": {
+      "types": "./dist/farm.d.ts",
+      "import": "./dist/farm.js"
+    },
+    "./bun": {
+      "types": "./dist/bun.d.ts",
+      "import": "./dist/bun.js"
+    },
+    "./virtual": {
+      "types": "./virtual.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "check": "npm run typecheck && npm test && npm run build && npm run check:testbeds",
+    "check:testbeds": "npm run check --workspaces --if-present",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "chokidar": "^5.0.0",
+    "minimatch": "^10.2.5",
+    "unplugin": "^3.3.0"
+  },
+  "peerDependencies": {
+    "remix": ">=3.0.0-beta.10"
+  },
+  "peerDependenciesMeta": {
+    "remix": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "remix": "3.0.0-beta.10",
+    "tsdown": "^0.15.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  },
+  "engines": {
+    "node": ">=20.19.0"
+  }
+}

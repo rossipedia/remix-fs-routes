@@ -1,0 +1,14 @@
+{
+  "name": "remix-fs-routes-testbed-webpack",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "webpack --config webpack.config.js",
+    "test": "node dist/bundle.mjs",
+    "check": "npm run build && npm test"
+  },
+  "devDependencies": {
+    "webpack": "^5.109.2",
+    "webpack-cli": "^7.2.2"
+  }
+}

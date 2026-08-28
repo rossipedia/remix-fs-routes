@@ -1,0 +1,13 @@
+{
+  "name": "remix-fs-routes-testbed-vite",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "test": "node dist/bundle.mjs",
+    "check": "npm run build && npm test"
+  },
+  "devDependencies": {
+    "vite": "^7.3.6"
+  }
+}

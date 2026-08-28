@@ -1,0 +1,6 @@
+node_modules/
+dist/
+coverage/
+*.log
+testbed/cli/app/routes/**/+route.ts
+testbed/*/dist/

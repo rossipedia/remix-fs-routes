@@ -1,0 +1,13 @@
+{
+  "name": "remix-fs-routes-testbed-rolldown",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "rolldown --config",
+    "test": "node dist/bundle.mjs",
+    "check": "npm run build && npm test"
+  },
+  "devDependencies": {
+    "rolldown": "^1.0.0-beta.45"
+  }
+}

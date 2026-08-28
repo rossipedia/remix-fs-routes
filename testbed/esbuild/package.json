@@ -1,0 +1,13 @@
+{
+  "name": "remix-fs-routes-testbed-esbuild",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node dist/bundle.mjs",
+    "check": "npm run build && npm test"
+  },
+  "devDependencies": {
+    "esbuild": "^0.27.7"
+  }
+}

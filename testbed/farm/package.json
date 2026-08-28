@@ -1,0 +1,13 @@
+{
+  "name": "remix-fs-routes-testbed-farm",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node dist/bundle.mjs",
+    "check": "npm run build && npm test"
+  },
+  "devDependencies": {
+    "@farmfe/core": "^1.7.11"
+  }
+}

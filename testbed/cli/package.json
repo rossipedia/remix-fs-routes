@@ -1,0 +1,30 @@
+{
+  "name": "remix-fs-routes-testbed-cli",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "routes": "remix-fs-routes generate",
+    "routes:watch": "remix-fs-routes generate --watch",
+    "routes:check": "remix-fs-routes generate --check",
+    "predev": "npm run routes",
+    "dev": "NODE_ENV=development node --watch --import remix/node-tsx server.ts",
+    "prestart": "npm run routes",
+    "start": "NODE_ENV=production node --import remix/node-tsx server.ts",
+    "pretest": "npm run routes",
+    "test": "NODE_ENV=test node --import remix/node-tsx --test",
+    "pretypecheck": "npm run routes",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run routes:check && npm run typecheck && npm test"
+  },
+  "dependencies": {
+    "remix": "3.0.0-beta.10",
+    "remix-fs-routes": "file:../.."
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
+  },
+  "engines": {
+    "node": ">=24.3.0"
+  }
+}

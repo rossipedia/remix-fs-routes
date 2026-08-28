@@ -1,0 +1,9 @@
+{
+  "name": "remix-fs-routes-testbed-shared",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "remix": "3.0.0-beta.10",
+    "remix-fs-routes": "file:../.."
+  }
+}

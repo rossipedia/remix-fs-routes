@@ -1,0 +1,10 @@
+{
+  "name": "remix-fs-routes-testbed-bun",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bun run build.mjs",
+    "test": "node dist/bundle.mjs",
+    "check": "node check.mjs"
+  }
+}

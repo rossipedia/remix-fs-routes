@@ -1,0 +1,14 @@
+{
+  "name": "remix-fs-routes-testbed-rspack",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "rspack build --config rspack.config.js",
+    "test": "node dist/bundle.mjs",
+    "check": "npm run build && npm test"
+  },
+  "devDependencies": {
+    "@rspack/cli": "^2.1.10",
+    "@rspack/core": "^2.1.10"
+  }
+}
