@@ -6,20 +6,20 @@
     "routes": "remix-fs-routes generate",
     "routes:watch": "remix-fs-routes generate --watch",
     "routes:check": "remix-fs-routes generate --check",
-    "predev": "npm run routes",
+    "predev": "pnpm routes",
     "dev": "NODE_ENV=development node --watch --import remix/node-tsx server.ts",
-    "prestart": "npm run routes",
+    "prestart": "pnpm routes",
     "start": "NODE_ENV=production node --import remix/node-tsx server.ts",
-    "pretest": "npm run routes",
+    "pretest": "pnpm routes",
     "test": "NODE_ENV=test node --import remix/node-tsx --test",
-    "pretypecheck": "npm run routes",
+    "pretypecheck": "pnpm routes",
     "typecheck": "tsc --noEmit",
-    "precheck": "npm run routes",
-    "check": "npm run routes:check && npm run typecheck && npm test"
+    "precheck": "pnpm routes",
+    "check": "pnpm routes:check && pnpm typecheck && pnpm test"
   },
   "dependencies": {
     "remix": "3.0.0-beta.10",
-    "remix-fs-routes": "file:../.."
+    "remix-fs-routes": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

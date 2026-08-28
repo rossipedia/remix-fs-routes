@@ -5,9 +5,10 @@
   "scripts": {
     "build": "node build.mjs",
     "test": "node dist/bundle.mjs",
-    "check": "npm run build && npm test"
+    "check": "pnpm build && pnpm test"
   },
   "devDependencies": {
-    "esbuild": "^0.27.7"
+    "esbuild": "^0.27.7",
+    "remix-fs-routes": "workspace:*"
   }
 }

@@ -3,9 +3,7 @@
   "version": "0.1.0",
   "description": "File-system route conventions for Remix 3",
   "type": "module",
-  "workspaces": [
-    "testbed/*"
-  ],
+  "packageManager": "pnpm@11.21.0",
   "license": "MIT",
   "files": [
     "dist",
@@ -67,8 +65,8 @@
   },
   "scripts": {
     "build": "tsdown",
-    "check": "npm run typecheck && npm test && npm run build && npm run check:testbeds",
-    "check:testbeds": "npm run check --workspaces --if-present",
+    "check": "pnpm typecheck && pnpm test && pnpm build && pnpm check:testbeds",
+    "check:testbeds": "pnpm --recursive --workspace-concurrency=1 --filter './testbed/*' --if-present run check",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

@@ -25,14 +25,14 @@ modules.
 Run the complete matrix from the repository root:
 
 ```sh
-npm run check:testbeds
+pnpm check:testbeds
 ```
 
 Run one adapter by workspace name:
 
 ```sh
-npm run check --workspace remix-fs-routes-testbed-vite
+pnpm --filter remix-fs-routes-testbed-vite check
 ```
 
 The Bun check uses the installed `bun` executable to build, then executes the result with Node. If
-Bun is unavailable, that workspace reports a skip so the rest of the npm workspace matrix can run.
+Bun is unavailable, that workspace reports a skip so the rest of the pnpm workspace matrix can run.

@@ -5,9 +5,10 @@
   "scripts": {
     "build": "rsbuild build",
     "test": "node dist/bundle.mjs",
-    "check": "npm run build && npm test"
+    "check": "pnpm build && pnpm test"
   },
   "devDependencies": {
-    "@rsbuild/core": "^2.1.13"
+    "@rsbuild/core": "^2.1.13",
+    "remix-fs-routes": "workspace:*"
   }
 }

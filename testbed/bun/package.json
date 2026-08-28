@@ -6,5 +6,8 @@
     "build": "bun run build.mjs",
     "test": "node dist/bundle.mjs",
     "check": "node check.mjs"
+  },
+  "devDependencies": {
+    "remix-fs-routes": "workspace:*"
   }
 }

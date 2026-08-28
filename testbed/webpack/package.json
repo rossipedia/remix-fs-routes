@@ -5,9 +5,10 @@
   "scripts": {
     "build": "webpack --config webpack.config.js",
     "test": "node dist/bundle.mjs",
-    "check": "npm run build && npm test"
+    "check": "pnpm build && pnpm test"
   },
   "devDependencies": {
+    "remix-fs-routes": "workspace:*",
     "webpack": "^5.109.2",
     "webpack-cli": "^7.2.2"
   }

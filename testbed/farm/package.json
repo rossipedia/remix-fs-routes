@@ -5,9 +5,10 @@
   "scripts": {
     "build": "node build.mjs",
     "test": "node dist/bundle.mjs",
-    "check": "npm run build && npm test"
+    "check": "pnpm build && pnpm test"
   },
   "devDependencies": {
-    "@farmfe/core": "^1.7.11"
+    "@farmfe/core": "^1.7.11",
+    "remix-fs-routes": "workspace:*"
   }
 }

@@ -11,7 +11,7 @@ Farm, and Bun adapters.
 ## Install
 
 ```sh
-npm install remix-fs-routes
+pnpm add remix-fs-routes
 ```
 
 Remix 3 is an optional peer dependency so build-only packages may use the scanner and CLI.
@@ -68,7 +68,7 @@ Likewise, `concerts` and `concerts._index` cannot coexist because both map to `/
 Generate route companions, the route map, the controller, and virtual-module declarations:
 
 ```sh
-npx remix-fs-routes generate
+pnpm exec remix-fs-routes generate
 ```
 
 The default central outputs are `app/routes.ts` and `app/routes.controller.ts`. Wire them into the

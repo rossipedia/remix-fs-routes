@@ -5,9 +5,10 @@
   "scripts": {
     "build": "rollup --config",
     "test": "node dist/bundle.mjs",
-    "check": "npm run build && npm test"
+    "check": "pnpm build && pnpm test"
   },
   "devDependencies": {
+    "remix-fs-routes": "workspace:*",
     "rollup": "^4.62.5"
   }
 }

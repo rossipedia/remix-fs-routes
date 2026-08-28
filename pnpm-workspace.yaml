@@ -1,0 +1,11 @@
+packages:
+  - 'testbed/*'
+
+allowBuilds:
+  core-js: true
+  esbuild: true
+
+overrides:
+  js-yaml: 4.1.0
+  oxc-resolver: 11.23.0
+  rolldown: 1.2.5

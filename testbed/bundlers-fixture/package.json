@@ -5,10 +5,10 @@
   "scripts": {
     "pretypecheck": "remix-fs-routes generate --routes-output app/routes.js --controller-output app/routes.controller.js",
     "typecheck": "tsc --noEmit",
-    "check": "npm run typecheck"
+    "check": "pnpm typecheck"
   },
   "dependencies": {
     "remix": "3.0.0-beta.10",
-    "remix-fs-routes": "file:../.."
+    "remix-fs-routes": "workspace:*"
   }
 }
