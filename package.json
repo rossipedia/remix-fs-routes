@@ -22,10 +22,6 @@
       "types": "./dist/unplugin.d.ts",
       "import": "./dist/unplugin.js"
     },
-    "./route-module": {
-      "types": "./dist/route-module.d.ts",
-      "import": "./dist/route-module.js"
-    },
     "./vite": {
       "types": "./dist/vite.d.ts",
       "import": "./dist/vite.js"
@@ -74,14 +70,6 @@
     "chokidar": "^5.0.0",
     "minimatch": "^10.2.5",
     "unplugin": "^3.3.0"
-  },
-  "peerDependencies": {
-    "remix": ">=3.0.0-beta.10"
-  },
-  "peerDependenciesMeta": {
-    "remix": {
-      "optional": true
-    }
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

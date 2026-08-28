@@ -87,7 +87,6 @@ export const unpluginFactory: UnpluginFactory<RemixFsRoutesPluginOptions | undef
         addWatchFiles(this, result, resolved)
         return generateVirtualRoutesSource(
           result,
-          resolved.appDirectory,
           options.routesExportName ?? 'routes',
         )
       }
@@ -164,7 +163,6 @@ export const unpluginFactory: UnpluginFactory<RemixFsRoutesPluginOptions | undef
         let result = await requireGenerated()
         return generateVirtualRoutesSource(
           result,
-          resolved.appDirectory,
           options.routesExportName ?? 'routes',
         )
       })
@@ -194,26 +192,14 @@ export default unplugin
 
 function generateVirtualRoutesSource(
   generated: GenerateRouteArtifactsResult,
-  appDirectory: string,
   routesExportName: string,
 ): string {
-  let imports = generated.manifest.routes.map((entry, index) => {
-    let routeModule = path.resolve(appDirectory, entry.file)
-    let companion = path.join(path.dirname(routeModule), '+route.ts').split(path.sep).join('/')
-    return `import { route as route${index} } from ${JSON.stringify(companion)}`
-  })
-  let routes = generated.manifest.routes
-    .map((entry, index) => `  ${JSON.stringify(entry.id)}: route${index},`)
-    .join('\n')
+  let routesArtifact = generated.artifacts.find((artifact) => artifact.kind === 'routes')
+  if (!routesArtifact) throw new Error('Generated routes artifact is missing.')
+  let routesModule = routesArtifact.output.split(path.sep).join('/')
   return [
     generatedFileHeader,
-    ...imports,
-    '',
-    `export const ${routesExportName} = {`,
-    routes,
-    '}',
-    '',
-    `export const routeManifest = ${JSON.stringify(generated.manifest.routes, null, 2)}`,
+    `export { ${routesExportName}, routeManifest } from ${JSON.stringify(routesModule)}`,
     '',
   ].join('\n')
 }
@@ -227,7 +213,7 @@ function generateVirtualControllerSource(
 ): string {
   let imports = generated.manifest.routes.map((entry, index) => {
     let routeModule = path.resolve(appDirectory, entry.file).split(path.sep).join('/')
-    return `import { action as routeAction${index} } from ${JSON.stringify(routeModule)}`
+    return `import routeAction${index} from ${JSON.stringify(routeModule)}`
   })
   let actions = generated.manifest.routes
     .map((entry, index) => `    ${JSON.stringify(entry.id)}: routeAction${index},`)

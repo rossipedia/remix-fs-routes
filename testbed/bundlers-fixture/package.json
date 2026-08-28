@@ -8,7 +8,9 @@
     "check": "pnpm typecheck"
   },
   "dependencies": {
-    "remix": "3.0.0-beta.10",
+    "remix": "3.0.0-beta.10"
+  },
+  "devDependencies": {
     "remix-fs-routes": "workspace:*"
   }
 }

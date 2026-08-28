@@ -18,11 +18,11 @@
     "check": "pnpm routes:check && pnpm typecheck && pnpm test"
   },
   "dependencies": {
-    "remix": "3.0.0-beta.10",
-    "remix-fs-routes": "workspace:*"
+    "remix": "3.0.0-beta.10"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
+    "remix-fs-routes": "workspace:*",
     "typescript": "^5.9.0"
   },
   "engines": {

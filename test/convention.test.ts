@@ -19,7 +19,7 @@ async function fixture(files: string[]): Promise<string> {
 }
 
 function folders(ids: string[]): string[] {
-  return ids.map((id) => `${id}/route.ts`)
+  return ids.map((id) => `${id}/action.ts`)
 }
 
 describe('scanRoutes', () => {
@@ -62,19 +62,19 @@ describe('scanRoutes', () => {
     expect(routes['($lang).categories']!.href({ lang: 'es' })).toBe('/es/categories')
   })
 
-  it('accepts route and index entrypoints without scanning colocated files', async () => {
+  it('accepts action entrypoints without scanning colocated files', async () => {
     let cwd = await fixture([
-      'account/route.tsx',
+      'account/action.tsx',
       'account/component.tsx',
-      'settings/index.ts',
+      'settings/action.ts',
       'settings/helper.ts',
       'ignored/route.mdx',
     ])
 
     let manifest = await scanRoutes({ cwd })
     expect(manifest.routes.map(({ id, file }) => ({ id, file }))).toEqual([
-      { id: 'account', file: 'routes/account/route.tsx' },
-      { id: 'settings', file: 'routes/settings/index.ts' },
+      { id: 'account', file: 'routes/account/action.tsx' },
+      { id: 'settings', file: 'routes/settings/action.ts' },
     ])
   })
 
@@ -93,7 +93,7 @@ describe('scanRoutes', () => {
     let cwd = await fixture(folders(['home', 'admin', '.hidden']))
     let manifest = await scanRoutes({
       cwd,
-      ignoredRouteFiles: ['home', 'routes/admin/route.ts'],
+      ignoredRouteFiles: ['home', 'routes/admin/action.ts'],
     })
     expect(manifest.routes).toEqual([])
   })
@@ -103,15 +103,18 @@ describe('scanRoutes', () => {
     await expect(scanRoutes({ cwd })).resolves.toMatchObject({ routes: [] })
   })
 
-  it('rejects files, layouts, duplicate entrypoints, and path collisions', async () => {
+  it('rejects files, layouts, legacy or duplicate entrypoints, and path collisions', async () => {
     let flatFile = await fixture(['about.tsx'])
     await expect(scanRoutes({ cwd: flatFile })).rejects.toThrow('must be placed in a route folder')
 
     let layout = await fixture(folders(['_auth']))
     await expect(scanRoutes({ cwd: layout })).rejects.toThrow('is pathless')
 
-    let folderConflict = await fixture(['account/route.tsx', 'account/index.tsx'])
-    await expect(scanRoutes({ cwd: folderConflict })).rejects.toThrow(RouteConventionError)
+    let legacy = await fixture(['account/route.tsx'])
+    await expect(scanRoutes({ cwd: legacy })).rejects.toThrow('rename the route module to action.js')
+
+    let folderConflict = await fixture(['account/action.tsx', 'account/action.ts'])
+    await expect(scanRoutes({ cwd: folderConflict })).rejects.toThrow('multiple action modules')
 
     let pathConflict = await fixture(folders(['about', '_public.about']))
     await expect(scanRoutes({ cwd: pathConflict })).rejects.toThrow('Route path collision')

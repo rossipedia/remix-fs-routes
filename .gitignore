@@ -7,4 +7,6 @@ coverage/
 testbed/**/+route.ts
 testbed/bundlers-fixture/app/routes.js
 testbed/bundlers-fixture/app/routes.controller.js
+testbed/bundlers-fixture/app/routes.support.js
+testbed/bundlers-fixture/app/routes.support.d.ts
 testbed/*/dist/

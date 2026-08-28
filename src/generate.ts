@@ -27,6 +27,8 @@ export async function generateRouteArtifacts(
   )
   let routesExportName = options.routesExportName ?? 'routes'
   let controllerExportName = options.controllerExportName ?? 'controller'
+  let supportOutput = getRouteSupportOutput(routesOutput)
+  let supportTypesOutput = getRouteSupportTypesOutput(routesOutput)
   validateIdentifier(routesExportName, 'routes export')
   validateIdentifier(controllerExportName, 'controller export')
   validateOutputExtension(routesOutput)
@@ -41,17 +43,32 @@ export async function generateRouteArtifacts(
       kind: 'route-module',
       output: path.join(path.dirname(routeModule), '+route.ts'),
       routeId: entry.id,
-      source: generateRouteModuleSource(entry.pattern),
+      source: generateRouteModuleSource(
+        entry.id,
+        path.join(path.dirname(routeModule), '+route.ts'),
+        routesOutput,
+        supportOutput,
+        routesExportName,
+      ),
     })
   }
 
   artifacts.push(
     {
+      kind: 'route-support',
+      output: supportOutput,
+      source: generateRouteSupportSource(),
+    },
+    {
+      kind: 'route-support',
+      output: supportTypesOutput,
+      source: generateRouteSupportTypesSource(),
+    },
+    {
       kind: 'routes',
       output: routesOutput,
       source: generateRoutesSource(
         manifest,
-        resolved.appDirectory,
         routesOutput,
         routesExportName,
         isTypeScriptOutput(routesOutput),
@@ -87,27 +104,21 @@ export async function generateRouteArtifacts(
 
 function generateRoutesSource(
   manifest: RouteManifest,
-  appDirectory: string,
   output: string,
   exportName: string,
   typescript: boolean,
 ): string {
-  let imports = manifest.routes.map((entry, index) => {
-    let routeModule = path.resolve(appDirectory, entry.file)
-    let companion = path.join(path.dirname(routeModule), '+route.ts')
-    return `import { route as route${index} } from ${JSON.stringify(relativeImport(output, companion))}`
-  })
   let definitions = manifest.routes
-    .map((entry, index) => `  ${JSON.stringify(entry.id)}: route${index},`)
+    .map((entry) => `  ${JSON.stringify(entry.id)}: ${JSON.stringify(entry.pattern)},`)
     .join('\n')
   let serializedManifest = indent(JSON.stringify(manifest.routes, null, 2))
   return [
     generatedFileHeader,
-    ...imports,
+    "import { route } from 'remix/routes'",
     '',
-    `export const ${exportName} = {`,
+    `export const ${exportName} = route({`,
     definitions,
-    '}',
+    '})',
     '',
     `export const routeManifest = ${serializedManifest}${typescript ? ' as const' : ''}`,
     '',
@@ -124,7 +135,7 @@ function generateControllerSource(
 ): string {
   let imports = manifest.routes.map((entry, index) => {
     let routeModule = path.resolve(appDirectory, entry.file)
-    return `import { action as routeAction${index} } from ${JSON.stringify(relativeImport(output, routeModule))}`
+    return `import routeAction${index} from ${JSON.stringify(relativeImport(output, routeModule))}`
   })
   let actions = manifest.routes
     .map((entry, index) => `    ${JSON.stringify(entry.id)}: routeAction${index},`)
@@ -144,12 +155,82 @@ function generateControllerSource(
   ].join('\n')
 }
 
-function generateRouteModuleSource(pattern: string): string {
+function generateRouteModuleSource(
+  routeId: string,
+  output: string,
+  routesOutput: string,
+  supportOutput: string,
+  routesExportName: string,
+): string {
   return [
     generatedFileHeader,
-    "import { createRouteModule } from 'remix-fs-routes/route-module'",
+    `import { ${routesExportName} } from ${JSON.stringify(relativeImport(output, routesOutput))}`,
+    `import { createRouteAction } from ${JSON.stringify(relativeImport(output, supportOutput))}`,
     '',
-    `export const { route, createAction } = createRouteModule(${JSON.stringify(pattern)})`,
+    `export const route = ${routesExportName}[${JSON.stringify(routeId)}]`,
+    'export const createAction = createRouteAction(route)',
+    '',
+  ].join('\n')
+}
+
+function generateRouteSupportSource(): string {
+  return [
+    generatedFileHeader,
+    'export function createRouteAction() {',
+    '  return (handlerOrOptions) => {',
+    "    if (typeof handlerOrOptions === 'function') return handlerOrOptions",
+    '    return (handler) => ({ ...handlerOrOptions, handler })',
+    '  }',
+    '}',
+    '',
+  ].join('\n')
+}
+
+function generateRouteSupportTypesSource(): string {
+  return [
+    generatedFileHeader,
+    'import type {',
+    '  Action,',
+    '  Middleware,',
+    '  RequestContext,',
+    '  RequestHandler,',
+    '  RouterTypes,',
+    "} from 'remix/router'",
+    "import type { Route } from 'remix/routes'",
+    '',
+    'type ActionRoute = string | Route',
+    'type AnyMiddleware = Middleware<any>',
+    'type DefaultContext = RouterTypes extends {',
+    '  context: infer context extends RequestContext<any, any>',
+    '}',
+    '  ? context',
+    '  : RequestContext',
+    'type ActionHandler<',
+    '  route extends ActionRoute,',
+    '  context extends RequestContext<any, any>,',
+    '> = Extract<Action<route, context>, RequestHandler<any>>',
+    'type ActionObject<',
+    '  route extends ActionRoute,',
+    '  context extends RequestContext<any, any>,',
+    '  middleware extends readonly AnyMiddleware[],',
+    "> = Extract<Action<route, context, middleware>, { handler: RequestHandler<any> }>",
+    '',
+    'export interface RouteActionFactory<',
+    '  route extends ActionRoute,',
+    '  context extends RequestContext<any, any>,',
+    '> {',
+    '  (handler: ActionHandler<route, context>): ActionHandler<route, context>',
+    '  <const middleware extends readonly AnyMiddleware[]>(options: {',
+    '    middleware: readonly [...middleware]',
+    '  }): (',
+    "    handler: ActionObject<route, context, middleware>['handler'],",
+    '  ) => ActionObject<route, context, middleware>',
+    '}',
+    '',
+    'export declare function createRouteAction<',
+    '  route extends ActionRoute,',
+    '  context extends RequestContext<any, any> = DefaultContext,',
+    '>(route: route): RouteActionFactory<route, context>',
     '',
   ].join('\n')
 }
@@ -221,6 +302,16 @@ function validateOutputExtension(output: string): void {
 
 function isTypeScriptOutput(output: string): boolean {
   return ['.ts', '.mts'].includes(path.extname(output))
+}
+
+export function getRouteSupportOutput(routesOutput: string): string {
+  let extension = path.extname(routesOutput)
+  return `${routesOutput.slice(0, -extension.length)}.support.js`
+}
+
+export function getRouteSupportTypesOutput(routesOutput: string): string {
+  let extension = path.extname(routesOutput)
+  return `${routesOutput.slice(0, -extension.length)}.support.d.ts`
 }
 
 function relativeImport(fromFile: string, toFile: string): string {

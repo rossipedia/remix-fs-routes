@@ -15,7 +15,7 @@ describe('watchRouteArtifacts', () => {
     let cwd = await mkdtemp(path.join(tmpdir(), 'remix-fs-routes-type-watch-'))
     let indexDirectory = path.join(cwd, 'app/routes/_index')
     await mkdir(indexDirectory, { recursive: true })
-    await writeFile(path.join(indexDirectory, 'route.ts'), 'export const action = () => new Response()\n')
+    await writeFile(path.join(indexDirectory, 'action.ts'), 'export default () => new Response()\n')
 
     let watcher = await watchRouteTypes({ cwd, pollingIntervalMs: 20 })
     try {
@@ -35,7 +35,7 @@ describe('watchRouteArtifacts', () => {
     let cwd = await mkdtemp(path.join(tmpdir(), 'remix-fs-routes-watch-'))
     let indexDirectory = path.join(cwd, 'app/routes/_index')
     await mkdir(indexDirectory, { recursive: true })
-    await writeFile(path.join(indexDirectory, 'route.ts'), 'export const action = () => new Response()\n')
+    await writeFile(path.join(indexDirectory, 'action.ts'), 'export default () => new Response()\n')
 
     let waitForResult: ((result: WriteRouteArtifactsResult) => boolean) | undefined
     let resolveResult: ((result: WriteRouteArtifactsResult) => void) | undefined
@@ -68,14 +68,14 @@ describe('watchRouteArtifacts', () => {
 
     try {
       let aboutDirectory = path.join(cwd, 'app/routes/about')
-      let aboutModule = path.join(aboutDirectory, 'route.ts')
+      let aboutModule = path.join(aboutDirectory, 'action.ts')
       let added = nextResult((result) => result.manifest.routes.some((route) => route.id === 'about'))
       await mkdir(aboutDirectory)
-      await writeFile(aboutModule, 'export const action = () => new Response()\n')
+      await writeFile(aboutModule, 'export default () => new Response()\n')
       await added
-      expect(await readFile(path.join(cwd, 'app/routes.ts'), 'utf8')).toContain('"about": route1')
+      expect(await readFile(path.join(cwd, 'app/routes.ts'), 'utf8')).toContain('"about": "/about"')
       let aboutCompanion = path.join(cwd, 'app/routes/about/+route.ts')
-      expect(await readFile(aboutCompanion, 'utf8')).toContain('createRouteModule("/about")')
+      expect(await readFile(aboutCompanion, 'utf8')).toContain('routes["about"]')
 
       let removed = nextResult(
         (result) => !result.manifest.routes.some((route) => route.id === 'about'),
@@ -96,7 +96,7 @@ describe('watchRouteArtifacts', () => {
     let routesDirectory = path.join(cwd, 'app/routes')
     let invalidModule = path.join(routesDirectory, 'about.ts')
     await mkdir(routesDirectory, { recursive: true })
-    await writeFile(invalidModule, 'export const action = () => new Response()\n')
+    await writeFile(invalidModule, 'export default () => new Response()\n')
 
     let errors: unknown[] = []
     let resolveRecovery: (() => void) | undefined
@@ -129,11 +129,11 @@ describe('watchRouteArtifacts', () => {
       let aboutDirectory = path.join(routesDirectory, 'about')
       await mkdir(aboutDirectory)
       await writeFile(
-        path.join(aboutDirectory, 'route.ts'),
-        'export const action = () => new Response()\n',
+        path.join(aboutDirectory, 'action.ts'),
+        'export default () => new Response()\n',
       )
       await recovered
-      expect(await readFile(path.join(cwd, 'app/routes.ts'), 'utf8')).toContain('"about": route0')
+      expect(await readFile(path.join(cwd, 'app/routes.ts'), 'utf8')).toContain('"about": "/about"')
     } finally {
       await watcher.close()
     }

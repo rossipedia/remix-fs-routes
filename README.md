@@ -11,36 +11,37 @@ Farm, and Bun adapters.
 ## Install
 
 ```sh
-pnpm add remix-fs-routes
+pnpm add --save-dev remix-fs-routes
 ```
 
-Remix 3 is an optional peer dependency so build-only packages may use the scanner and CLI.
+`remix-fs-routes` is build-time tooling. Generated application modules import only app-local
+generated files and Remix subpaths.
 
 ## Route modules
 
 Every endpoint is a direct child folder of `app/routes`. Its folder name defines the route ID and URL,
-and its entrypoint is `route.js`, `route.jsx`, `route.ts`, or `route.tsx`. `index.*` is also accepted as
-an entrypoint, although `route.*` is recommended. Other files in the folder are colocated support code.
+and its entrypoint is `action.js`, `action.jsx`, `action.ts`, or `action.tsx`. Other files in the folder
+are colocated support code.
 
 ```text
 app/routes/
-  _index/route.ts                 /
-  about/route.ts                  /about
-  blog.$slug/route.ts             /blog/:slug
-  files.$/route.ts                /files/*
-  ($lang).categories/route.ts     /categories or /:lang/categories
-  concerts_.mine/route.ts         /concerts/mine
-  sitemap[.]xml/route.ts          /sitemap.xml
+  _index/action.ts                 /
+  about/action.ts                  /about
+  blog.$slug/action.ts             /blog/:slug
+  files.$/action.ts                /files/*
+  ($lang).categories/action.ts     /categories or /:lang/categories
+  concerts_.mine/action.ts         /concerts/mine
+  sitemap[.]xml/action.ts          /sitemap.xml
 ```
 
-Generation places a concrete `+route.ts` companion beside every authored route. The companion owns
-the Remix route object and a strongly typed action factory, so authored modules do not repeat a route
-identifier or type argument:
+Generation places a concrete `+route.ts` companion beside every authored route. The companion
+references its route from the central generated route contract and exports a strongly typed action
+factory, so authored modules do not repeat a route identifier or type argument:
 
 ```ts
 import { createAction } from './+route.ts'
 
-export const action = createAction(({ params }) => {
+export default createAction(({ params }) => {
   return new Response(`Post ${params.slug}`)
 })
 ```
@@ -48,18 +49,17 @@ export const action = createAction(({ params }) => {
 Middleware is inferred before the bound factory types the handler:
 
 ```ts
-export const action = createAction({
+export default createAction({
   middleware: [requireUser],
 })(async ({ params, get }) => {
   return new Response(params.slug)
 })
 ```
 
-The package-level `createAction<Route>(handler)`, curried action-object form, and
-`createAction(route, action)` remain available for compatibility. A route may re-export `action`, but
-every route must provide that named export.
+Every action module must provide a default export. It may re-export an action implemented elsewhere
+with `export { default } from './handler.ts'`.
 
-Pathless segments may organize an endpoint, such as `_auth.login/route.ts` mapping to `/login`.
+Pathless segments may organize an endpoint, such as `_auth.login/action.ts` mapping to `/login`.
 Standalone pathless folders are rejected because Remix's request router has no layout endpoint.
 Likewise, `concerts` and `concerts._index` cannot coexist because both map to `/concerts`.
 
@@ -172,8 +172,9 @@ let watcher = await watchRouteArtifacts({ debounceMs: 30 })
 // Later: await watcher.close()
 ```
 
-`generated.artifacts` contains ordered `route-module`, `routes`, `controller`, and `virtual-types`
-records with absolute output paths and source text. The scanner throws `RouteConventionError` for
+`generated.artifacts` contains ordered `route-module`, `route-support`, `routes`, `controller`, and
+`virtual-types` records with absolute output paths and source text. The scanner throws
+`RouteConventionError` for
 malformed folder names, unsupported top-level files, pathless endpoints, entrypoint conflicts, and
 duplicate URL patterns.
 

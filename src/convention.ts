@@ -78,16 +78,24 @@ async function findRouteModules(options: ResolvedFileSystemRoutesOptions): Promi
     if (!entry.isDirectory()) continue
 
     let children = await readdir(absoluteEntry, { withFileTypes: true })
-    let routeFile = findNamedRouteModule(children, 'route')
-    let indexFile = findNamedRouteModule(children, 'index')
-
-    if (routeFile && indexFile) {
+    let actionFiles = findNamedRouteModules(children, 'action')
+    if (actionFiles.length > 1) {
       throw new RouteConventionError(
-        `Route folder ${displayPath(absoluteEntry, options.cwd)} contains both ${routeFile} and ${indexFile}.`,
+        `Route folder ${displayPath(absoluteEntry, options.cwd)} contains multiple action modules: ${actionFiles.join(', ')}.`,
       )
     }
 
-    let moduleName = routeFile ?? indexFile
+    let legacyFiles = [
+      ...findNamedRouteModules(children, 'route'),
+      ...findNamedRouteModules(children, 'index'),
+    ]
+    if (legacyFiles.length > 0) {
+      throw new RouteConventionError(
+        `Route folder ${displayPath(absoluteEntry, options.cwd)} uses ${legacyFiles.join(', ')}; rename the route module to action.js, action.jsx, action.ts, or action.tsx.`,
+      )
+    }
+
+    let moduleName = actionFiles[0]
     if (!moduleName) continue
     let absoluteFile = path.join(absoluteEntry, moduleName)
     if (!isIgnored(absoluteFile, options)) {
@@ -307,14 +315,16 @@ function findParentId(routeId: string, ids: string[]): string | undefined {
   return matches.sort((a, b) => b.length - a.length)[0]
 }
 
-function findNamedRouteModule(
+function findNamedRouteModules(
   entries: Dirent<string>[],
   basename: string,
-): string | undefined {
+): string[] {
+  let matches: string[] = []
   for (let extension of routeModuleExtensions) {
     let filename = `${basename}${extension}`
-    if (entries.some((entry) => entry.isFile() && entry.name === filename)) return filename
+    if (entries.some((entry) => entry.isFile() && entry.name === filename)) matches.push(filename)
   }
+  return matches
 }
 
 function isRouteModule(filename: string): boolean {

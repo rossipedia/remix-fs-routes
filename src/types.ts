@@ -55,6 +55,7 @@ export type GeneratedRouteArtifactKind =
   | 'routes'
   | 'controller'
   | 'route-module'
+  | 'route-support'
   | 'virtual-types'
 
 export interface GeneratedRouteArtifact {

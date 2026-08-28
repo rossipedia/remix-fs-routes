@@ -16,7 +16,7 @@ async function project(): Promise<string> {
   for (let route of ['_index', 'users.$id']) {
     let directory = path.join(cwd, 'app/routes', route)
     await mkdir(directory, { recursive: true })
-    await writeFile(path.join(directory, 'route.tsx'), 'export const action = () => new Response()\n')
+    await writeFile(path.join(directory, 'action.tsx'), 'export default () => new Response()\n')
   }
   return cwd
 }
@@ -26,16 +26,22 @@ describe('route artifact generation', () => {
     let cwd = await project()
     let result = await generateRouteArtifacts({ cwd })
     let routes = result.artifacts.find((artifact) => artifact.kind === 'routes')!
+    let support = result.artifacts.find((artifact) => artifact.output.endsWith('.support.js'))!
+    let supportTypes = result.artifacts.find((artifact) => artifact.output.endsWith('.support.d.ts'))!
     let controller = result.artifacts.find((artifact) => artifact.kind === 'controller')!
     let userRoute = result.artifacts.find((artifact) => artifact.routeId === 'users.$id')!
     let virtualTypes = result.artifacts.find((artifact) => artifact.kind === 'virtual-types')!
 
-    expect(routes.source).toContain('route as route1')
-    expect(routes.source).toContain('"users.$id": route1,')
+    expect(routes.source).toContain("import { route } from 'remix/routes'")
+    expect(routes.source).toContain('"users.$id": "/users/:id",')
+    expect(support.source).toContain('export function createRouteAction()')
+    expect(supportTypes.source).toContain('export declare function createRouteAction<')
     expect(controller.source).toContain('createController(routes, {')
-    expect(controller.source).toContain('action as routeAction1')
+    expect(controller.source).toContain('import routeAction1 from')
     expect(controller.source).toContain('"users.$id": routeAction1')
-    expect(userRoute.source).toContain('createRouteModule("/users/:id")')
+    expect(userRoute.source).toContain('export const route = routes["users.$id"]')
+    expect(userRoute.source).toContain('createRouteAction(route)')
+    expect(userRoute.source).not.toMatch(/from ["']remix-fs-routes/)
     expect(userRoute.output).toContain('app/routes/users.$id/+route.ts')
     expect(virtualTypes.source).toContain(
       'readonly "users.$id": Route<\'ANY\', "/users/:id">',
@@ -43,6 +49,8 @@ describe('route artifact generation', () => {
     expect(result.artifacts.map((artifact) => artifact.kind)).toEqual([
       'route-module',
       'route-module',
+      'route-support',
+      'route-support',
       'routes',
       'controller',
       'virtual-types',
@@ -62,7 +70,7 @@ describe('route artifact generation', () => {
 
     let about = path.join(cwd, 'app/routes/about')
     await mkdir(about)
-    await writeFile(path.join(about, 'route.ts'), 'export const action = () => new Response()\n')
+    await writeFile(path.join(about, 'action.ts'), 'export default () => new Response()\n')
     let stale = await writeRouteArtifacts({ cwd, check: true })
     expect(stale.changed).toBe(true)
     expect(stale.artifacts.find((artifact) => artifact.kind === 'routes')?.changed).toBe(true)
@@ -130,7 +138,8 @@ describe('route artifact generation', () => {
     expect(controller.source).toContain('export const appController = createController(appRoutes')
     let indexRoute = generated.artifacts.find((artifact) => artifact.routeId === '_index')!
     expect(indexRoute.output).toContain('app/routes/_index/+route.ts')
-    expect(indexRoute.source).toContain('createRouteModule("/")')
+    expect(indexRoute.source).toContain('export const route = appRoutes["_index"]')
+    expect(indexRoute.source).toContain('../../generated/contract.support.js')
 
     await expect(generateRouteArtifacts({ cwd, routesExportName: 'not-valid' })).rejects.toThrow(
       'Invalid routes export name',

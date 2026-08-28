@@ -4,7 +4,6 @@ export default defineConfig({
   entry: [
     'src/index.ts',
     'src/cli.ts',
-    'src/route-module.ts',
     'src/unplugin.ts',
     'src/vite.ts',
     'src/rollup.ts',
@@ -19,5 +18,4 @@ export default defineConfig({
   format: ['esm'],
   dts: true,
   clean: true,
-  external: ['remix/route-pattern', 'remix/router', 'remix/routes'],
 })

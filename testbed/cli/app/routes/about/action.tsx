@@ -2,7 +2,7 @@ import { page } from '../../actions/page.tsx'
 import { routes } from '../../routes.ts'
 import { createAction } from './+route.ts'
 
-export const action = createAction({
+export default createAction({
   middleware: [],
 })(() => {
   return page(

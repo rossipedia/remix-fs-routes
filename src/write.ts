@@ -2,7 +2,12 @@ import path from 'node:path'
 import { mkdir, readdir, readFile, rename, unlink, writeFile } from 'node:fs/promises'
 
 import { resolveOptions } from './convention.js'
-import { generateRouteArtifacts, generatedFileHeader } from './generate.js'
+import {
+  generateRouteArtifacts,
+  generatedFileHeader,
+  getRouteSupportOutput,
+  getRouteSupportTypesOutput,
+} from './generate.js'
 import type {
   GenerateRouteArtifactsOptions,
   GenerateRouteArtifactsResult,
@@ -104,6 +109,8 @@ export function ignoreGeneratedOutputs<T extends GenerateRouteArtifactsOptions>(
     path.resolve(resolved.cwd, options.routesOutput ?? 'app/routes.ts'),
     path.resolve(resolved.cwd, options.controllerOutput ?? 'app/routes.controller.ts'),
   ]
+  outputs.push(getRouteSupportOutput(outputs[0]))
+  outputs.push(getRouteSupportTypesOutput(outputs[0]))
   let patterns = outputs.flatMap((output) => {
     let relative = path.relative(resolved.rootDirectory, output)
     return relative.startsWith('..') || path.isAbsolute(relative)
