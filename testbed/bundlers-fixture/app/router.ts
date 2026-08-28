@@ -1,8 +1,11 @@
+import { renderWith } from 'remix/middleware/render'
 import { createRouter, type MiddlewareContext } from 'remix/router'
 
-import { render } from '#/actions/render.js'
+import { createRenderer } from '#/render.js'
 import { routes } from '#/routes.js'
 import { controller } from '#/routes.controller.js'
+
+const render = renderWith(createRenderer)
 
 export type AppContext = MiddlewareContext<[typeof render]>
 

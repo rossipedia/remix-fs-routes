@@ -6,12 +6,13 @@
   "packageManager": "pnpm@11.21.0",
   "license": "MIT",
   "files": [
+    "bin",
     "dist",
     "README.md",
     "LICENSE"
   ],
   "bin": {
-    "remix-fs-routes": "./dist/cli.js"
+    "remix-fs-routes": "./bin/remix-fs-routes.js"
   },
   "exports": {
     ".": {

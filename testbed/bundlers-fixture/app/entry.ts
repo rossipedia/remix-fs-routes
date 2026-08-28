@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict'
 
-import { render } from '#/actions/render.js'
+import { createRenderer } from '#/render.js'
+import { renderWith } from 'remix/middleware/render'
 import { createRouter } from 'remix/router'
 import { controller } from 'virtual:remix-fs-routes/controller'
 import { href, routes } from 'virtual:remix-fs-routes/routes'
 
+let render = renderWith(createRenderer)
 let router = createRouter({ middleware: [render] })
 router.map(routes, controller)
 
