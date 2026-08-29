@@ -1,4 +1,13 @@
-export const routeModuleExtensions = ['.js', '.jsx', '.ts', '.tsx'] as const
+export const routeModuleExtensions = [
+  '.js',
+  '.jsx',
+  '.mjs',
+  '.cjs',
+  '.ts',
+  '.tsx',
+  '.mts',
+  '.cts',
+] as const
 
 export interface FileSystemRoutesOptions {
   /** Application directory, relative to `cwd`. Defaults to `app`. */

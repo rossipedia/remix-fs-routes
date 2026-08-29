@@ -89,6 +89,18 @@ describe('scanRoutes', () => {
     ])
   })
 
+  it('accepts every executable JavaScript and TypeScript module extension', async () => {
+    let extensions = ['js', 'jsx', 'mjs', 'cjs', 'ts', 'tsx', 'mts', 'cts']
+    let cwd = await fixture(extensions.map((extension) => `${extension}/action.${extension}`))
+
+    let manifest = await scanRoutes({ cwd })
+    expect(manifest.routes.map(({ id, file }) => ({ id, file }))).toEqual(
+      extensions
+        .map((extension) => ({ id: extension, file: `routes/${extension}/action.${extension}` }))
+        .sort((a, b) => a.id.localeCompare(b.id)),
+    )
+  })
+
   it('keeps descriptive parent ids and distinguishes trailing-slash routes', async () => {
     let cwd = await fixture(folders(['concerts', 'concerts._index', 'concerts.$city']))
     let manifest = await scanRoutes({ cwd })
@@ -136,10 +148,10 @@ describe('scanRoutes', () => {
 
     let legacy = await fixture(['account/route.tsx'])
     await expect(scanRoutes({ cwd: legacy })).rejects.toThrow(
-      'rename the route module to action.js',
+      'rename the route module to one of: action.js',
     )
 
-    let folderConflict = await fixture(['account/action.tsx', 'account/action.ts'])
+    let folderConflict = await fixture(['account/action.mts', 'account/action.cjs'])
     await expect(scanRoutes({ cwd: folderConflict })).rejects.toThrow('multiple action modules')
 
     let pathConflict = await fixture(folders(['about', '[about]']))

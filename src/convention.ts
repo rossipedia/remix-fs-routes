@@ -92,8 +92,11 @@ async function findRouteModules(options: ResolvedFileSystemRoutesOptions): Promi
       ...findNamedRouteModules(children, 'index'),
     ]
     if (legacyFiles.length > 0) {
+      let actionFilenames = routeModuleExtensions
+        .map((extension) => `action${extension}`)
+        .join(', ')
       throw new RouteConventionError(
-        `Route folder ${displayPath(absoluteEntry, options.cwd)} uses ${legacyFiles.join(', ')}; rename the route module to action.js, action.jsx, action.ts, or action.tsx.`,
+        `Route folder ${displayPath(absoluteEntry, options.cwd)} uses ${legacyFiles.join(', ')}; rename the route module to one of: ${actionFilenames}.`,
       )
     }
 

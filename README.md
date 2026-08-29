@@ -21,8 +21,9 @@ generated files and Remix subpaths.
 ## Route modules
 
 Every endpoint is a direct child folder of `app/routes`. Its folder name defines the route ID and URL,
-and its entrypoint is `action.js`, `action.jsx`, `action.ts`, or `action.tsx`. Other files in the folder
-are colocated support code.
+and its entrypoint is named `action` with an executable JavaScript or TypeScript extension: `.js`,
+`.jsx`, `.mjs`, `.cjs`, `.ts`, `.tsx`, `.mts`, or `.cts`. Other files in the folder are colocated
+support code. Declaration files such as `action.d.ts` are not route modules.
 
 ```text
 app/routes/
