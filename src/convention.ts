@@ -30,7 +30,9 @@ export class RouteConventionError extends Error {
   override name = 'RouteConventionError'
 }
 
-export function resolveOptions(options: FileSystemRoutesOptions = {}): ResolvedFileSystemRoutesOptions {
+export function resolveOptions(
+  options: FileSystemRoutesOptions = {},
+): ResolvedFileSystemRoutesOptions {
   let cwd = path.resolve(options.cwd ?? process.cwd())
   let appDirectory = path.resolve(cwd, options.appDirectory ?? 'app')
   let rootDirectory = path.resolve(appDirectory, options.rootDirectory ?? 'routes')
@@ -147,17 +149,22 @@ function buildManifestEntries(candidates: Candidate[]): RouteManifestEntry[] {
 }
 
 function createManifestEntry(candidate: Candidate, ids: string[]): RouteManifestEntry {
-  let index = candidate.id.endsWith('_index')
   let segments = parseRouteSegments(candidate.id)
-  let routeSegments = index ? segments.slice(0, -1) : segments
-  if (!index && isPathlessSegment(routeSegments.at(-1))) {
-    throw new RouteConventionError(
-      `Route folder "${candidate.id}" is pathless and does not define an endpoint.`,
-    )
+  let trailingSlash = segments.at(-1)?.raw === '_index'
+  for (let [segmentIndex, segment] of segments.entries()) {
+    if (segment.raw === '_index' && segmentIndex !== segments.length - 1) {
+      throw new RouteConventionError(
+        `Route folder "${candidate.id}" uses _index before the final segment. _index is only supported as the final route segment.`,
+      )
+    }
   }
-  let pathSegments = routeSegments.filter((segment) => !isPathlessSegment(segment))
-  let pathValue = pathSegments.map(toReactRouterSegment).filter(Boolean).join('/')
-  let pattern = toRemixPattern(pathSegments)
+  let routeSegments = trailingSlash ? segments.slice(0, -1) : segments
+  let pathValue = routeSegments.map(toReactRouterSegment).filter(Boolean).join('/')
+  let pattern = toRemixPattern(routeSegments)
+  if (trailingSlash && pattern !== '/') {
+    pathValue += '/'
+    pattern += '/'
+  }
 
   return {
     id: candidate.id,
@@ -165,7 +172,7 @@ function createManifestEntry(candidate: Candidate, ids: string[]): RouteManifest
     path: pathValue || undefined,
     pattern,
     parentId: findParentId(candidate.id, ids),
-    index,
+    trailingSlash,
   }
 }
 
@@ -236,8 +243,7 @@ export function parseRouteSegments(routeId: string): ParsedSegment[] {
 }
 
 function toReactRouterSegment(segment: ParsedSegment): string {
-  let value = withoutTrailingUnderscore(segment)
-  return segment.optional ? `${value}?` : value
+  return segment.optional ? `${segment.value}?` : segment.value
 }
 
 function toRemixPattern(segments: ParsedSegment[]): string {
@@ -246,7 +252,7 @@ function toRemixPattern(segments: ParsedSegment[]): string {
   let leadingOptionals = true
   for (let index = 0; index < segments.length; index++) {
     let segment = segments[index]
-    let value = escapeRemixLiterals(withoutTrailingUnderscore(segment), segment.raw)
+    let value = escapeRemixLiterals(segment.value, segment.raw)
     if (index === 0) {
       pattern += segment.optional
         ? index === segments.length - 1
@@ -293,18 +299,6 @@ function escapeRemixLiterals(value: string, raw: string): string {
   return result + value.slice(valueIndex)
 }
 
-function withoutTrailingUnderscore(segment: ParsedSegment): string {
-  return segment.value.endsWith('_') && segment.raw.endsWith('_')
-    ? segment.value.slice(0, -1)
-    : segment.value
-}
-
-function isPathlessSegment(segment: ParsedSegment | undefined): boolean {
-  return Boolean(
-    segment && segment.value.startsWith('_') && segment.raw.startsWith('_') && segment.raw !== '_index',
-  )
-}
-
 function findParentId(routeId: string, ids: string[]): string | undefined {
   let matches = ids.filter(
     (candidate) =>
@@ -315,10 +309,7 @@ function findParentId(routeId: string, ids: string[]): string | undefined {
   return matches.sort((a, b) => b.length - a.length)[0]
 }
 
-function findNamedRouteModules(
-  entries: Dirent<string>[],
-  basename: string,
-): string[] {
+function findNamedRouteModules(entries: Dirent<string>[], basename: string): string[] {
   let matches: string[] = []
   for (let extension of routeModuleExtensions) {
     let filename = `${basename}${extension}`
@@ -328,7 +319,9 @@ function findNamedRouteModules(
 }
 
 function isRouteModule(filename: string): boolean {
-  return routeModuleExtensions.includes(path.extname(filename) as (typeof routeModuleExtensions)[number])
+  return routeModuleExtensions.includes(
+    path.extname(filename) as (typeof routeModuleExtensions)[number],
+  )
 }
 
 function isIgnored(absolutePath: string, options: ResolvedFileSystemRoutesOptions): boolean {
@@ -336,7 +329,9 @@ function isIgnored(absolutePath: string, options: ResolvedFileSystemRoutesOption
   let routesRelative = toPosix(path.relative(options.rootDirectory, absolutePath))
   if (routesRelative.split('/').some((part) => part.startsWith('.'))) return true
   return options.ignoredRouteFiles.some(
-    (pattern) => minimatch(appRelative, pattern, { dot: true }) || minimatch(routesRelative, pattern, { dot: true }),
+    (pattern) =>
+      minimatch(appRelative, pattern, { dot: true }) ||
+      minimatch(routesRelative, pattern, { dot: true }),
   )
 }
 

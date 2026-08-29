@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "routes": "remix-fs-routes generate --app ../bundlers-fixture/app --routes-output ../bundlers-fixture/app/routes.ts --controller-output ../bundlers-fixture/app/routes.controller.ts --typegen-directory ../bundlers-fixture/.remix-fs-routes/types",
+    "routes": "node ../../bin/remix-fs-routes.js generate --app ../bundlers-fixture/app --routes-output ../bundlers-fixture/app/routes.ts --controller-output ../bundlers-fixture/app/routes.controller.ts --typegen-directory ../bundlers-fixture/.remix-fs-routes/types",
     "routes:watch": "pnpm routes --watch",
     "routes:check": "pnpm routes --check",
     "predev": "pnpm routes",

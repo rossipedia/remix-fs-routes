@@ -23,13 +23,14 @@ export interface RouteManifestEntry {
   id: string
   /** Route module path relative to the application directory. */
   file: string
-  /** React Router-compatible pathname produced by the folder-name convention. */
+  /** Pathname produced by the supported flat-route folder-name convention. */
   path?: string
   /** Native Remix 3 route pattern. */
   pattern: string
   /** Parent route id according to the flat-route naming convention. */
   parentId?: string
-  index: boolean
+  /** Whether a final `_index` segment adds a required trailing slash. */
+  trailingSlash: boolean
 }
 
 export interface RouteManifest {

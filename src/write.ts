@@ -69,9 +69,7 @@ async function writeGeneratedArtifacts(
   }
 
   let expectedTypes = new Set(
-    generated.artifacts
-      .filter(isTypeArtifact)
-      .map((artifact) => path.resolve(artifact.output)),
+    generated.artifacts.filter(isTypeArtifact).map((artifact) => path.resolve(artifact.output)),
   )
   let expectedRouteModules = new Set(
     generated.artifacts
@@ -83,9 +81,7 @@ async function writeGeneratedArtifacts(
   )
   let removed = [
     ...(await findStaleRouteTypes(options, expectedTypes)),
-    ...(includesRouteModules
-      ? await findStaleRouteModules(options, expectedRouteModules)
-      : []),
+    ...(includesRouteModules ? await findStaleRouteModules(options, expectedRouteModules) : []),
   ].sort((a, b) => a.localeCompare(b))
   if (!options.check) {
     for (let output of removed) await unlink(output)
@@ -154,7 +150,7 @@ async function findGeneratedTypeFiles(directory: string): Promise<string[]> {
   for (let entry of entries) {
     let candidate = path.join(directory, entry.name)
     if (entry.isDirectory()) {
-      files.push(...await findGeneratedTypeFiles(candidate))
+      files.push(...(await findGeneratedTypeFiles(candidate)))
     } else if (
       entry.isFile() &&
       (entry.name === 'virtual.d.ts' ||

@@ -1,4 +1,9 @@
-export { RouteConventionError, parseRouteSegments, resolveOptions, scanRoutes } from './convention.js'
+export {
+  RouteConventionError,
+  parseRouteSegments,
+  resolveOptions,
+  scanRoutes,
+} from './convention.js'
 export type { ParsedSegment } from './convention.js'
 export { generateRouteArtifacts, generatedFileHeader } from './generate.js'
 export { ignoreGeneratedOutputs, writeRouteArtifacts, writeRouteTypes } from './write.js'

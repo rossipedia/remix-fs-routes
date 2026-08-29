@@ -12,7 +12,7 @@
     "#/*.js": "./app/*.js"
   },
   "scripts": {
-    "pretypecheck": "remix-fs-routes generate",
+    "pretypecheck": "node ../../bin/remix-fs-routes.js generate",
     "typecheck": "tsc --noEmit",
     "check": "pnpm typecheck"
   },

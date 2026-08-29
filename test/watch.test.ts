@@ -22,10 +22,9 @@ describe('watchRouteArtifacts', () => {
       await expect(readFile(path.join(cwd, 'app/routes.ts'), 'utf8')).rejects.toMatchObject({
         code: 'ENOENT',
       })
-      expect(await readFile(
-        path.join(cwd, '.remix-fs-routes/types/virtual.d.ts'),
-        'utf8',
-      )).toContain('readonly "_index": Route<\'ANY\', "/">')
+      expect(
+        await readFile(path.join(cwd, '.remix-fs-routes/types/virtual.d.ts'), 'utf8'),
+      ).toContain('readonly "_index": Route<\'ANY\', "/">')
     } finally {
       await watcher.close()
     }
@@ -69,7 +68,9 @@ describe('watchRouteArtifacts', () => {
     try {
       let aboutDirectory = path.join(cwd, 'app/routes/about')
       let aboutModule = path.join(aboutDirectory, 'action.ts')
-      let added = nextResult((result) => result.manifest.routes.some((route) => route.id === 'about'))
+      let added = nextResult((result) =>
+        result.manifest.routes.some((route) => route.id === 'about'),
+      )
       await mkdir(aboutDirectory)
       await writeFile(aboutModule, 'export default () => new Response()\n')
       await added

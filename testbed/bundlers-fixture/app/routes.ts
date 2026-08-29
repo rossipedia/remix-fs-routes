@@ -2,44 +2,22 @@
 import { createHref, type CreateHrefArgs } from 'remix/route-pattern/href'
 import { route } from 'remix/routes'
 
-export const routes = route({
+const routeDefs = {
   "_index": "/",
-  "($lang).hello": "(:lang/)hello",
+  "($lang).hello": "/(:lang/)hello",
   "about": "/about",
+  "about._index": "/about/",
+  "files.$": "/files/*",
+  "frames.details": "/frames/details",
+  "frames.summary": "/frames/summary",
   "posts.$slug": "/posts/:slug",
-})
+  "projects.$projectId.settings": "/projects/:projectId/settings",
+  "reports.$reportId[.pdf]": "/reports/:reportId.pdf",
+} as const
 
-export const routeManifest = [
-    {
-      "id": "_index",
-      "file": "routes/_index/action.tsx",
-      "pattern": "/",
-      "index": true
-    },
-    {
-      "id": "($lang).hello",
-      "file": "routes/($lang).hello/action.tsx",
-      "path": ":lang?/hello",
-      "pattern": "(:lang/)hello",
-      "index": false
-    },
-    {
-      "id": "about",
-      "file": "routes/about/action.tsx",
-      "path": "about",
-      "pattern": "/about",
-      "index": false
-    },
-    {
-      "id": "posts.$slug",
-      "file": "routes/posts.$slug/action.tsx",
-      "path": "posts/:slug",
-      "pattern": "/posts/:slug",
-      "index": false
-    }
-  ] as const
+export const routes = route(routeDefs)
 
-export type RoutePattern = "/" | "/(:lang/)hello" | "/about" | "/posts/:slug"
+export type RoutePattern = typeof routeDefs[keyof typeof routeDefs]
 
 export function href<const pattern extends RoutePattern>(
   pattern: pattern,

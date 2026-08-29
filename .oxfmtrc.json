@@ -1,0 +1,17 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "printWidth": 100,
+  "semi": false,
+  "singleQuote": true,
+  "trailingComma": "all",
+  "sortPackageJson": false,
+  "ignorePatterns": [
+    "**/+route.ts",
+    "**/routes.support.js",
+    "**/routes.support.d.ts",
+    ".remix-fs-routes/**",
+    "testbed/bundlers-fixture/app/routes.ts",
+    "testbed/bundlers-fixture/app/routes.controller.ts",
+    "testbed/bundlers-fixture/.remix-fs-routes/**"
+  ]
+}

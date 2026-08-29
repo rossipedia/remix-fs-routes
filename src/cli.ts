@@ -42,7 +42,9 @@ export async function run(argv = process.argv.slice(2)): Promise<number> {
       if (options.check) {
         console.log(artifact.changed ? `outdated ${relativeOutput}` : `current ${relativeOutput}`)
       } else {
-        console.log(artifact.changed ? `generated ${relativeOutput}` : `unchanged ${relativeOutput}`)
+        console.log(
+          artifact.changed ? `generated ${relativeOutput}` : `unchanged ${relativeOutput}`,
+        )
       }
     }
     for (let output of result.removed) {
@@ -147,7 +149,8 @@ export function parseArguments(argv: string[]): CliOptions {
         throw new Error(`Unknown argument: ${argument}`)
     }
   }
-  if (options.check && options.watch) throw new Error('--check and --watch cannot be used together.')
+  if (options.check && options.watch)
+    throw new Error('--check and --watch cannot be used together.')
   return options
 }
 

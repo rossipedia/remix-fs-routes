@@ -5,10 +5,7 @@ import { createUnplugin, type UnpluginBuildContext, type UnpluginFactory } from 
 import { resolveOptions } from './convention.js'
 import { generatedFileHeader } from './generate.js'
 import { ignoreGeneratedOutputs, writeRouteArtifacts } from './write.js'
-import type {
-  GenerateRouteArtifactsResult,
-  RemixFsRoutesPluginOptions,
-} from './types.js'
+import type { GenerateRouteArtifactsResult, RemixFsRoutesPluginOptions } from './types.js'
 
 export const defaultRoutesVirtualModuleId = 'virtual:remix-fs-routes/routes'
 export const defaultControllerVirtualModuleId = 'virtual:remix-fs-routes/controller'
@@ -77,18 +74,14 @@ export const unpluginFactory: UnpluginFactory<RemixFsRoutesPluginOptions | undef
       return undefined
     },
     loadInclude(id) {
-      return id === resolvedRoutesVirtualModuleId ||
-        id === resolvedControllerVirtualModuleId
+      return id === resolvedRoutesVirtualModuleId || id === resolvedControllerVirtualModuleId
     },
     async load(id) {
       let result: GenerateRouteArtifactsResult | undefined
       if (id === resolvedRoutesVirtualModuleId) {
         result = await requireGenerated()
         addWatchFiles(this, result, resolved)
-        return generateVirtualRoutesSource(
-          result,
-          options.routesExportName ?? 'routes',
-        )
+        return generateVirtualRoutesSource(result, options.routesExportName ?? 'routes')
       }
       if (id === resolvedControllerVirtualModuleId) {
         result = await requireGenerated()
@@ -110,18 +103,15 @@ export const unpluginFactory: UnpluginFactory<RemixFsRoutesPluginOptions | undef
       let result = await queueRefresh()
       addWatchFiles(this, result.generated, resolved)
       if (result.changed) {
-        invalidateVite?.([
-          resolvedRoutesVirtualModuleId,
-          resolvedControllerVirtualModuleId,
-        ])
+        invalidateVite?.([resolvedRoutesVirtualModuleId, resolvedControllerVirtualModuleId])
       }
     },
     vite: {
       configureServer(server) {
         invalidateVite = (moduleIds) => {
           for (let id of moduleIds) {
-              let module = server.moduleGraph.getModuleById(id)
-              if (module) server.moduleGraph.invalidateModule(module)
+            let module = server.moduleGraph.getModuleById(id)
+            if (module) server.moduleGraph.invalidateModule(module)
           }
           server.ws.send({ type: 'full-reload' })
         }
@@ -130,22 +120,21 @@ export const unpluginFactory: UnpluginFactory<RemixFsRoutesPluginOptions | undef
     },
     esbuild: {
       setup(build) {
-        build.onResolve(
-          { filter: /.*/, namespace: 'remix-fs-routes' },
-          ({ path: id }) => path.isAbsolute(id) ? { path: id, namespace: 'file' } : undefined,
+        build.onResolve({ filter: /.*/, namespace: 'remix-fs-routes' }, ({ path: id }) =>
+          path.isAbsolute(id) ? { path: id, namespace: 'file' } : undefined,
         )
       },
     },
     webpack(compiler) {
       let virtualModulesByScheme = new Map<
         string,
-        Record<string, (loaderContext: { addContextDependency(directory: string): void }) => Promise<string>>
+        Record<
+          string,
+          (loaderContext: { addContextDependency(directory: string): void }) => Promise<string>
+        >
       >()
 
-      let addVirtualModule = (
-        id: string,
-        loadSource: () => Promise<string>,
-      ) => {
+      let addVirtualModule = (id: string, loadSource: () => Promise<string>) => {
         let separator = id.indexOf(':')
         if (separator < 1) return
 
@@ -161,10 +150,7 @@ export const unpluginFactory: UnpluginFactory<RemixFsRoutesPluginOptions | undef
 
       addVirtualModule(routesVirtualModuleId, async () => {
         let result = await requireGenerated()
-        return generateVirtualRoutesSource(
-          result,
-          options.routesExportName ?? 'routes',
-        )
+        return generateVirtualRoutesSource(result, options.routesExportName ?? 'routes')
       })
       addVirtualModule(controllerVirtualModuleId, async () => {
         let result = await requireGenerated()
@@ -199,7 +185,7 @@ function generateVirtualRoutesSource(
   let routesModule = routesArtifact.output.split(path.sep).join('/')
   return [
     generatedFileHeader,
-    `export { href, ${routesExportName}, routeManifest } from ${JSON.stringify(routesModule)}`,
+    `export { href, ${routesExportName} } from ${JSON.stringify(routesModule)}`,
     '',
   ].join('\n')
 }

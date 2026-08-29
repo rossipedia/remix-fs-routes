@@ -108,14 +108,16 @@ function generateRoutesSource(
   exportName: string,
   typescript: boolean,
 ): string {
-  let routePatterns = [...new Set(manifest.routes.map((entry) => absolutePattern(entry.pattern)))]
+  let routeDefsName = exportName === 'routeDefs' ? 'generatedRouteDefs' : 'routeDefs'
   let definitions = manifest.routes
-    .map((entry) => `  ${JSON.stringify(entry.id)}: ${JSON.stringify(entry.pattern)},`)
+    .map(
+      (entry) =>
+        `  ${JSON.stringify(entry.id)}: ${JSON.stringify(absolutePattern(entry.pattern))},`,
+    )
     .join('\n')
-  let serializedManifest = indent(JSON.stringify(manifest.routes, null, 2))
   let hrefSource = typescript
     ? [
-        `export type RoutePattern = ${routePatterns.map((pattern) => JSON.stringify(pattern)).join(' | ')}`,
+        `export type RoutePattern = typeof ${routeDefsName}[keyof typeof ${routeDefsName}]`,
         '',
         'export function href<const pattern extends RoutePattern>(',
         '  pattern: pattern,',
@@ -124,11 +126,7 @@ function generateRoutesSource(
         '  return createHref(pattern, ...args)',
         '}',
       ]
-    : [
-        'export function href(pattern, ...args) {',
-        '  return createHref(pattern, ...args)',
-        '}',
-      ]
+    : ['export function href(pattern, ...args) {', '  return createHref(pattern, ...args)', '}']
   return [
     generatedFileHeader,
     typescript
@@ -136,11 +134,11 @@ function generateRoutesSource(
       : "import { createHref } from 'remix/route-pattern/href'",
     "import { route } from 'remix/routes'",
     '',
-    `export const ${exportName} = route({`,
+    `const ${routeDefsName} = {`,
     definitions,
-    '})',
+    `}${typescript ? ' as const' : ''}`,
     '',
-    `export const routeManifest = ${serializedManifest}${typescript ? ' as const' : ''}`,
+    `export const ${exportName} = route(${routeDefsName})`,
     '',
     ...hrefSource,
     '',
@@ -235,7 +233,7 @@ function generateRouteSupportTypesSource(): string {
     '  route extends ActionRoute,',
     '  context extends RequestContext<any, any>,',
     '  middleware extends readonly AnyMiddleware[],',
-    "> = Extract<Action<route, context, middleware>, { handler: RequestHandler<any> }>",
+    '> = Extract<Action<route, context, middleware>, { handler: RequestHandler<any> }>',
     '',
     'export interface RouteActionFactory<',
     '  route extends ActionRoute,',
@@ -266,7 +264,10 @@ function generateVirtualTypesSource(
 ): string {
   let routePatterns = [...new Set(manifest.routes.map((entry) => absolutePattern(entry.pattern)))]
   let routeTypes = manifest.routes
-    .map((entry) => `    readonly ${JSON.stringify(entry.id)}: Route<'ANY', ${JSON.stringify(absolutePattern(entry.pattern))}>`)
+    .map(
+      (entry) =>
+        `    readonly ${JSON.stringify(entry.id)}: Route<'ANY', ${JSON.stringify(absolutePattern(entry.pattern))}>`,
+    )
     .join('\n')
   return [
     generatedFileHeader,
@@ -283,14 +284,6 @@ function generateVirtualTypesSource(
     `  export const ${routesExportName}: {`,
     routeTypes,
     '  }',
-    `  export const routeManifest: readonly {`,
-    '    readonly id: string',
-    '    readonly file: string',
-    '    readonly path?: string',
-    '    readonly pattern: string',
-    '    readonly parentId?: string',
-    '    readonly index: boolean',
-    '  }[]',
     '}',
     '',
     `declare module ${JSON.stringify(controllerModuleId)} {`,
@@ -347,11 +340,4 @@ export function getRouteSupportTypesOutput(routesOutput: string): string {
 function relativeImport(fromFile: string, toFile: string): string {
   let relative = path.relative(path.dirname(fromFile), toFile).split(path.sep).join('/')
   return relative.startsWith('.') ? relative : `./${relative}`
-}
-
-function indent(value: string): string {
-  return value
-    .split('\n')
-    .map((line, index) => (index === 0 ? line : `  ${line}`))
-    .join('\n')
 }

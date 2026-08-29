@@ -1,8 +1,9 @@
 # remix-fs-routes
 
-File-system route modules for Remix 3. Route folder names use the flat-route grammar from
+File-system route modules for Remix 3. Route folder names use an endpoint-oriented subset of the
+flat-route grammar from
 [`@react-router/fs-routes`](https://reactrouter.com/how-to/file-route-conventions), while handlers use
-Remix actions and generated controllers.
+Remix actions and generated controllers. Nesting-only conventions are intentionally omitted.
 
 The package provides a standalone CLI and an
 [unplugin](https://unplugin.unjs.io/) with Vite, Rollup, Rolldown, webpack, Rspack, Rsbuild, esbuild,
@@ -27,10 +28,13 @@ are colocated support code.
 app/routes/
   _index/action.ts                 /
   about/action.ts                  /about
+  about._index/action.ts           /about/
   blog.$slug/action.ts             /blog/:slug
   files.$/action.ts                /files/*
   ($lang).categories/action.ts     /categories or /:lang/categories
-  concerts_.mine/action.ts         /concerts/mine
+  _auth.login/action.ts            /_auth/login
+  concerts_.mine/action.ts         /concerts_/mine
+  reports.$id[.pdf]/action.ts      /reports/:id.pdf
   sitemap[.]xml/action.ts          /sitemap.xml
 ```
 
@@ -72,9 +76,12 @@ href('/(:lang/)categories', { lang: 'es' })
 Every action module must provide a default export. It may re-export an action implemented elsewhere
 with `export { default } from './handler.ts'`.
 
-Pathless segments may organize an endpoint, such as `_auth.login/action.ts` mapping to `/login`.
-Standalone pathless folders are rejected because Remix's request router has no layout endpoint.
-Likewise, `concerts` and `concerts._index` cannot coexist because both map to `/concerts`.
+Because Remix does not have nested route layouts, leading and trailing underscores have no special
+meaning. They remain literal URL characters: `_auth.login` maps to `/_auth/login`, and
+`concerts_.mine` maps to `/concerts_/mine`. `_index` is the sole underscore-based convention and is
+only valid as the final segment. It adds a required trailing slash, so `concerts` maps to
+`/concerts`, while `concerts._index` maps to the distinct Remix URL `/concerts/`. `_index` alone maps
+to the root URL `/`.
 
 ## CLI
 
@@ -188,8 +195,8 @@ let watcher = await watchRouteArtifacts({ debounceMs: 30 })
 `generated.artifacts` contains ordered `route-module`, `route-support`, `routes`, `controller`, and
 `virtual-types` records with absolute output paths and source text. The scanner throws
 `RouteConventionError` for
-malformed folder names, unsupported top-level files, pathless endpoints, entrypoint conflicts, and
-duplicate URL patterns.
+malformed folder names, unsupported top-level files, misplaced `_index` segments, entrypoint
+conflicts, and duplicate URL patterns.
 
 ## Testbed
 

@@ -27,16 +27,24 @@ describe('route artifact generation', () => {
     let result = await generateRouteArtifacts({ cwd })
     let routes = result.artifacts.find((artifact) => artifact.kind === 'routes')!
     let support = result.artifacts.find((artifact) => artifact.output.endsWith('.support.js'))!
-    let supportTypes = result.artifacts.find((artifact) => artifact.output.endsWith('.support.d.ts'))!
+    let supportTypes = result.artifacts.find((artifact) =>
+      artifact.output.endsWith('.support.d.ts'),
+    )!
     let controller = result.artifacts.find((artifact) => artifact.kind === 'controller')!
     let userRoute = result.artifacts.find((artifact) => artifact.routeId === 'users.$id')!
     let virtualTypes = result.artifacts.find((artifact) => artifact.kind === 'virtual-types')!
 
     expect(routes.source).toContain("import { route } from 'remix/routes'")
+    expect(routes.source).toContain('const routeDefs = {')
     expect(routes.source).toContain('"users.$id": "/users/:id",')
-    expect(routes.source).toContain('export type RoutePattern = "/" | "/users/:id"')
+    expect(routes.source).toContain('} as const')
+    expect(routes.source).toContain('export const routes = route(routeDefs)')
+    expect(routes.source).toContain(
+      'export type RoutePattern = typeof routeDefs[keyof typeof routeDefs]',
+    )
     expect(routes.source).toContain('export function href<const pattern extends RoutePattern>')
     expect(routes.source).toContain('return createHref(pattern, ...args)')
+    expect(routes.source).not.toContain('routeManifest')
     expect(support.source).toContain('export function createRouteAction()')
     expect(supportTypes.source).toContain('export declare function createRouteAction<')
     expect(controller.source).toContain('createController(routes, {')
@@ -46,11 +54,12 @@ describe('route artifact generation', () => {
     expect(userRoute.source).toContain('createRouteAction(route)')
     expect(userRoute.source).not.toMatch(/from ["']remix-fs-routes/)
     expect(userRoute.output).toContain('app/routes/users.$id/+route.ts')
-    expect(virtualTypes.source).toContain(
-      'readonly "users.$id": Route<\'ANY\', "/users/:id">',
-    )
+    expect(virtualTypes.source).toContain('readonly "users.$id": Route<\'ANY\', "/users/:id">')
     expect(virtualTypes.source).toContain('export type RoutePattern = "/" | "/users/:id"')
-    expect(virtualTypes.source).toContain('export function href<const pattern extends RoutePattern>')
+    expect(virtualTypes.source).toContain(
+      'export function href<const pattern extends RoutePattern>',
+    )
+    expect(virtualTypes.source).not.toContain('routeManifest')
     expect(result.artifacts.map((artifact) => artifact.kind)).toEqual([
       'route-module',
       'route-module',
@@ -89,10 +98,24 @@ describe('route artifact generation', () => {
     await expect(readFile(path.join(cwd, 'app/routes.ts'), 'utf8')).rejects.toMatchObject({
       code: 'ENOENT',
     })
-    expect(await readFile(
-      path.join(cwd, '.remix-fs-routes/types/virtual.d.ts'),
-      'utf8',
-    )).toContain('readonly "users.$id": Route<\'ANY\', "/users/:id">')
+    expect(await readFile(path.join(cwd, '.remix-fs-routes/types/virtual.d.ts'), 'utf8')).toContain(
+      'readonly "users.$id": Route<\'ANY\', "/users/:id">',
+    )
+  })
+
+  it('uses absolute route definitions so RoutePattern can be derived from their values', async () => {
+    let cwd = await project()
+    let optionalRoute = path.join(cwd, 'app/routes/($lang).hello')
+    await mkdir(optionalRoute)
+    await writeFile(path.join(optionalRoute, 'action.ts'), 'export default () => new Response()\n')
+
+    let generated = await generateRouteArtifacts({ cwd })
+    let routes = generated.artifacts.find((artifact) => artifact.kind === 'routes')!
+
+    expect(routes.source).toContain('"($lang).hello": "/(:lang/)hello",')
+    expect(routes.source).toContain(
+      'export type RoutePattern = typeof routeDefs[keyof typeof routeDefs]',
+    )
   })
 
   it('removes stale generated types and legacy companions while protecting user files', async () => {
@@ -102,10 +125,7 @@ describe('route artifact generation', () => {
     await mkdir(staleDirectory)
     let staleCompanion = path.join(staleDirectory, '+route.ts')
     await writeFile(staleCompanion, `${generatedFileHeader}\nexport {}\n`)
-    let staleType = path.join(
-      cwd,
-      '.remix-fs-routes/types/app/routes/old/+types/route.d.ts',
-    )
+    let staleType = path.join(cwd, '.remix-fs-routes/types/app/routes/old/+types/route.d.ts')
     await mkdir(path.dirname(staleType), { recursive: true })
     await writeFile(staleType, `${generatedFileHeader}\nexport {}\n`)
 
@@ -140,6 +160,8 @@ describe('route artifact generation', () => {
     let routes = generated.artifacts.find((artifact) => artifact.kind === 'routes')!
     let controller = generated.artifacts.find((artifact) => artifact.kind === 'controller')!
     expect(routes.source).not.toContain('as const')
+    expect(routes.source).toContain('const routeDefs = {')
+    expect(routes.source).toContain('export const appRoutes = route(routeDefs)')
     expect(routes.source).toContain("import { createHref } from 'remix/route-pattern/href'")
     expect(routes.source).toContain('export function href(pattern, ...args)')
     expect(controller.source).toContain('export const appController = createController(appRoutes')
@@ -148,11 +170,18 @@ describe('route artifact generation', () => {
     expect(indexRoute.source).toContain('export const route = appRoutes["_index"]')
     expect(indexRoute.source).toContain('../../generated/contract.support.js')
 
+    let routeDefsExport = await generateRouteArtifacts({ cwd, routesExportName: 'routeDefs' })
+    let routeDefsSource = routeDefsExport.artifacts.find(
+      (artifact) => artifact.kind === 'routes',
+    )!.source
+    expect(routeDefsSource).toContain('const generatedRouteDefs = {')
+    expect(routeDefsSource).toContain('export const routeDefs = route(generatedRouteDefs)')
+
     await expect(generateRouteArtifacts({ cwd, routesExportName: 'not-valid' })).rejects.toThrow(
       'Invalid routes export name',
     )
-    await expect(generateRouteArtifacts({ cwd, controllerOutput: 'controller.txt' })).rejects.toThrow(
-      'must use .ts',
-    )
+    await expect(
+      generateRouteArtifacts({ cwd, controllerOutput: 'controller.txt' }),
+    ).rejects.toThrow('must use .ts')
   })
 })

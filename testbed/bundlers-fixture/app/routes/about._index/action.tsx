@@ -2,14 +2,16 @@ import { page } from '#/actions/page.js'
 import { href } from '#/routes.js'
 import { createAction } from './+route.ts'
 
-export default createAction(({ params, render }) => {
-  let language = params.lang ?? 'default'
+export default createAction(({ render }) => {
   return render(
     page(
-      `Hello (${language})`,
+      'About (trailing slash)',
       <>
         <p>
-          The optional locale came from the <code>($lang).hello</code> route folder.
+          This action matches <code>/about/</code>, independently from <code>/about</code>.
+        </p>
+        <p>
+          <a href={href('/about')}>Visit the route without a trailing slash</a>
         </p>
         <p>
           <a href={href('/')}>Back home</a>

@@ -28,6 +28,7 @@ describe('scanRoutes', () => {
       folders([
         '_index',
         'about',
+        'about._index',
         'blog.$slug',
         'docs.(section)',
         '(legacy)',
@@ -35,7 +36,11 @@ describe('scanRoutes', () => {
         '($lang).categories',
         'reports.$id[.pdf]',
         'sitemap[.]xml',
+        '_auth.login',
         'concerts_.mine',
+        'search_index',
+        '[_status]',
+        'account[_]',
         'weird.[(literal)]',
       ]),
     )
@@ -46,8 +51,13 @@ describe('scanRoutes', () => {
       '(legacy)': '(legacy)',
       _index: '/',
       about: '/about',
+      'about._index': '/about/',
       'blog.$slug': '/blog/:slug',
-      'concerts_.mine': '/concerts/mine',
+      '_auth.login': '/_auth/login',
+      'concerts_.mine': '/concerts_/mine',
+      search_index: '/search_index',
+      '[_status]': '/_status',
+      'account[_]': '/account_',
       'docs.(section)': '/docs(/section)',
       'files.$': '/files/*',
       'reports.$id[.pdf]': '/reports/:id.pdf',
@@ -60,6 +70,7 @@ describe('scanRoutes', () => {
     )
     expect(routes['($lang).categories']!.href()).toBe('/categories')
     expect(routes['($lang).categories']!.href({ lang: 'es' })).toBe('/es/categories')
+    expect(routes['about._index']!.href()).toBe('/about/')
   })
 
   it('accepts action entrypoints without scanning colocated files', async () => {
@@ -78,14 +89,25 @@ describe('scanRoutes', () => {
     ])
   })
 
-  it('keeps organizational pathless prefixes and descriptive parent ids', async () => {
-    let cwd = await fixture(folders(['_auth.login', 'concerts', 'concerts.$city']))
+  it('keeps descriptive parent ids and distinguishes trailing-slash routes', async () => {
+    let cwd = await fixture(folders(['concerts', 'concerts._index', 'concerts.$city']))
     let manifest = await scanRoutes({ cwd })
 
     expect(manifest.routes).toMatchObject([
-      { id: '_auth.login', pattern: '/login', index: false },
-      { id: 'concerts', pattern: '/concerts', index: false },
-      { id: 'concerts.$city', pattern: '/concerts/:city', parentId: 'concerts', index: false },
+      { id: 'concerts', pattern: '/concerts', trailingSlash: false },
+      {
+        id: 'concerts._index',
+        path: 'concerts/',
+        pattern: '/concerts/',
+        parentId: 'concerts',
+        trailingSlash: true,
+      },
+      {
+        id: 'concerts.$city',
+        pattern: '/concerts/:city',
+        parentId: 'concerts',
+        trailingSlash: false,
+      },
     ])
   })
 
@@ -107,19 +129,20 @@ describe('scanRoutes', () => {
     let flatFile = await fixture(['about.tsx'])
     await expect(scanRoutes({ cwd: flatFile })).rejects.toThrow('must be placed in a route folder')
 
-    let layout = await fixture(folders(['_auth']))
-    await expect(scanRoutes({ cwd: layout })).rejects.toThrow('is pathless')
+    let misplacedIndex = await fixture(folders(['_index.child']))
+    await expect(scanRoutes({ cwd: misplacedIndex })).rejects.toThrow(
+      '_index is only supported as the final route segment',
+    )
 
     let legacy = await fixture(['account/route.tsx'])
-    await expect(scanRoutes({ cwd: legacy })).rejects.toThrow('rename the route module to action.js')
+    await expect(scanRoutes({ cwd: legacy })).rejects.toThrow(
+      'rename the route module to action.js',
+    )
 
     let folderConflict = await fixture(['account/action.tsx', 'account/action.ts'])
     await expect(scanRoutes({ cwd: folderConflict })).rejects.toThrow('multiple action modules')
 
-    let pathConflict = await fixture(folders(['about', '_public.about']))
+    let pathConflict = await fixture(folders(['about', '[about]']))
     await expect(scanRoutes({ cwd: pathConflict })).rejects.toThrow('Route path collision')
-
-    let indexConflict = await fixture(folders(['concerts', 'concerts._index']))
-    await expect(scanRoutes({ cwd: indexConflict })).rejects.toThrow('Route path collision')
   })
 })

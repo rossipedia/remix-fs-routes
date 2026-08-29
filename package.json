@@ -62,8 +62,10 @@
   },
   "scripts": {
     "build": "tsdown",
-    "check": "pnpm typecheck && pnpm test && pnpm build && pnpm check:testbeds",
+    "check": "pnpm fmt:check && pnpm typecheck && pnpm test && pnpm build && pnpm check:testbeds",
     "check:testbeds": "pnpm --recursive --workspace-concurrency=1 --filter './testbed/*' --if-present run check",
+    "fmt": "oxfmt .",
+    "fmt:check": "oxfmt --check .",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
@@ -74,6 +76,7 @@
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
+    "oxfmt": "0.64.0",
     "remix": "3.0.0-beta.10",
     "tsdown": "^0.15.0",
     "typescript": "^5.9.0",

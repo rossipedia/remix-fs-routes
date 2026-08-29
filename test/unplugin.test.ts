@@ -32,10 +32,10 @@ describe('unplugin', () => {
   it('rejects the removed write option', async () => {
     let { cwd } = await fixture()
     expect(() =>
-      unpluginFactory(
-        { cwd, write: false } as Parameters<typeof unpluginFactory>[0],
-        { framework: 'vite', versions: {} },
-      ),
+      unpluginFactory({ cwd, write: false } as Parameters<typeof unpluginFactory>[0], {
+        framework: 'vite',
+        versions: {},
+      }),
     ).toThrow('route companions are always written')
   })
 
@@ -49,10 +49,7 @@ describe('unplugin', () => {
 
     let routes = await readFile(path.join(cwd, 'app/routes.ts'), 'utf8')
     let controller = await readFile(path.join(cwd, 'app/routes.controller.ts'), 'utf8')
-    let routeModule = await readFile(
-      path.join(cwd, 'app/routes/posts.$slug/+route.ts'),
-      'utf8',
-    )
+    let routeModule = await readFile(path.join(cwd, 'app/routes/posts.$slug/+route.ts'), 'utf8')
     expect(routes).toContain('"posts.$slug": "/posts/:slug"')
     expect(routes).toContain('export function href<const pattern extends RoutePattern>')
     expect(controller).toContain('import routeAction0 from')
@@ -60,12 +57,9 @@ describe('unplugin', () => {
     expect(routeModule).not.toMatch(/from ["']remix-fs-routes/)
     expect(addWatchFile).toHaveBeenCalledWith(path.join(cwd, 'app/routes'))
 
-    let routesId = await resolve?.call(
-      {} as never,
-      defaultRoutesVirtualModuleId,
-      undefined,
-      { isEntry: false },
-    )
+    let routesId = await resolve?.call({} as never, defaultRoutesVirtualModuleId, undefined, {
+      isEntry: false,
+    })
     let controllerId = await resolve?.call(
       {} as never,
       defaultControllerVirtualModuleId,
@@ -76,7 +70,7 @@ describe('unplugin', () => {
     expect(controllerId).toBe(`\0${defaultControllerVirtualModuleId}`)
     let loadContext = { addWatchFile: vi.fn() } as never
     await expect(load?.call(loadContext, routesId as string)).resolves.toContain(
-      'export { href, routes, routeManifest } from',
+      'export { href, routes } from',
     )
     await expect(load?.call(loadContext, controllerId as string)).resolves.toContain(
       `from "${defaultRoutesVirtualModuleId}"`,
@@ -113,13 +107,12 @@ describe('unplugin', () => {
     expect(await readFile(path.join(cwd, 'app/routes.ts'), 'utf8')).toContain(
       '"contact": "/contact"',
     )
-    await expect(readFile(path.join(cwd, 'app/routes/about/+route.ts'), 'utf8')).rejects.toMatchObject({
+    await expect(
+      readFile(path.join(cwd, 'app/routes/about/+route.ts'), 'utf8'),
+    ).rejects.toMatchObject({
       code: 'ENOENT',
     })
-    expect(await readFile(
-      path.join(cwd, 'app/routes/contact/+route.ts'),
-      'utf8',
-    )).toContain(
+    expect(await readFile(path.join(cwd, 'app/routes/contact/+route.ts'), 'utf8')).toContain(
       'routes["contact"]',
     )
   })
@@ -130,9 +123,9 @@ describe('unplugin', () => {
       unpluginFactory({ cwd }, { framework: 'vite', versions: {} }),
     )
     await plugin.buildStart?.call({ addWatchFile: vi.fn(), error: vi.fn(), warn: vi.fn() } as never)
-    expect(
-      await readFile(path.join(cwd, 'app/routes/posts.$slug/+route.ts'), 'utf8'),
-    ).toContain('routes["posts.$slug"]')
+    expect(await readFile(path.join(cwd, 'app/routes/posts.$slug/+route.ts'), 'utf8')).toContain(
+      'routes["posts.$slug"]',
+    )
     let loadContext = { addWatchFile: vi.fn() } as never
 
     let virtualModule = {}
@@ -142,14 +135,17 @@ describe('unplugin', () => {
       typeof plugin.vite?.configureServer === 'function'
         ? plugin.vite.configureServer
         : plugin.vite?.configureServer?.handler
-    configureServer?.call({} as never, {
-      moduleGraph: {
-        getModuleById: vi.fn(() => virtualModule),
-        invalidateModule,
-      },
-      watcher: { add: vi.fn() },
-      ws: { send },
-    } as never)
+    configureServer?.call(
+      {} as never,
+      {
+        moduleGraph: {
+          getModuleById: vi.fn(() => virtualModule),
+          invalidateModule,
+        },
+        watcher: { add: vi.fn() },
+        ws: { send },
+      } as never,
+    )
 
     let aboutDirectory = path.join(cwd, 'app/routes/about')
     let aboutModule = path.join(aboutDirectory, 'action.ts')
@@ -160,14 +156,11 @@ describe('unplugin', () => {
       aboutModule,
       { event: 'create' },
     )
-    let routesId = await resolve?.call(
-      {} as never,
-      defaultRoutesVirtualModuleId,
-      undefined,
-      { isEntry: false },
-    )
+    let routesId = await resolve?.call({} as never, defaultRoutesVirtualModuleId, undefined, {
+      isEntry: false,
+    })
     await expect(load?.call(loadContext, routesId as string)).resolves.toContain(
-      'export { href, routes, routeManifest } from',
+      'export { href, routes } from',
     )
     expect(invalidateModule).toHaveBeenCalledWith(virtualModule)
     expect(send).toHaveBeenCalledWith({ type: 'full-reload' })

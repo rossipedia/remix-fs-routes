@@ -2,15 +2,16 @@ import { page } from '#/actions/page.js'
 import { href } from '#/routes.js'
 import { createAction } from './+route.ts'
 
-export default createAction(({ params, render }) => {
-  // @ts-expect-error params is typed based on the route folder path
-  void params.missing
+export default createAction(({ render, url }) => {
+  let matchedPath = url.pathname.slice('/files/'.length)
 
   return render(
     page(
-      `Post: ${params.slug}`,
+      'Catch-all file route',
       <>
-        <p>This is a post with slug {params.slug}</p>
+        <p>
+          Matched path: <code>{matchedPath}</code>
+        </p>
         <p>
           <a href={href('/')}>Back home</a>
         </p>

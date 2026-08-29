@@ -4,13 +4,25 @@ import { routes } from "./routes.ts"
 import routeAction0 from "./routes/_index/action.tsx"
 import routeAction1 from "./routes/($lang).hello/action.tsx"
 import routeAction2 from "./routes/about/action.tsx"
-import routeAction3 from "./routes/posts.$slug/action.tsx"
+import routeAction3 from "./routes/about._index/action.tsx"
+import routeAction4 from "./routes/files.$/action.tsx"
+import routeAction5 from "./routes/frames.details/action.tsx"
+import routeAction6 from "./routes/frames.summary/action.tsx"
+import routeAction7 from "./routes/posts.$slug/action.tsx"
+import routeAction8 from "./routes/projects.$projectId.settings/action.tsx"
+import routeAction9 from "./routes/reports.$reportId[.pdf]/action.tsx"
 
 export const controller = createController(routes, {
   actions: {
     "_index": routeAction0,
     "($lang).hello": routeAction1,
     "about": routeAction2,
-    "posts.$slug": routeAction3,
+    "about._index": routeAction3,
+    "files.$": routeAction4,
+    "frames.details": routeAction5,
+    "frames.summary": routeAction6,
+    "posts.$slug": routeAction7,
+    "projects.$projectId.settings": routeAction8,
+    "reports.$reportId[.pdf]": routeAction9,
   },
 })
