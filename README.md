@@ -3,6 +3,18 @@
 File-system route modules for Remix 3, available as a standalone CLI or plugins for Vite, Rollup,
 Rolldown, webpack, Rspack, Rsbuild, esbuild, Farm, and Bun.
 
+> [!NOTE]
+>
+> ### 🤖 LLM assistance disclaimer 🤖
+> This project was developed with the assistance of OpenAI's Sol model.
+> While I have been a rather vocal critic of the social, economic, environmental, and most importantly cognitive impacts of LLMs and companies/people/data centers that power them, and have avoided building anything substantial with them outside of work until now, I wanted to hold an informed opinion by actually using one for something substantial of my own.
+>
+> Does that make me somewhat hypocritical? Possibly. But it's a weird world. I'm still navigating my way through this mess, and sometimes a hypocrite is a person who's going through change.
+>
+> Do with that as you will. If you choose not to consume this package because of that, I understand (_believe me_, I do) and hold no ill will.
+>
+> The rest of this readme was produced via LLM. This note, however, is 100% my own words.
+
 ## Quickstart
 
 Install the package:
