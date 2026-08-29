@@ -200,6 +200,7 @@ conflicts, and duplicate URL patterns.
 
 ## Testbed
 
-[`testbed/cli/`](./testbed/cli) runs the standalone CLI against the same TSX Remix UI route tree used
-by every bundler workspace. The CLI imports physical generated modules, while the plugin testbeds
-consume their virtual counterparts; see the [testbed matrix](./testbed/README.md) for commands.
+[`test-app/`](./test-app) is one Remix application with side-by-side configurations for the
+standalone CLI and every bundler adapter. The CLI imports physical generated modules, while each
+bundler consumes the virtual counterparts and writes to its own `dist/<bundler>/` directory; see the
+[test app](./test-app/README.md) for commands.

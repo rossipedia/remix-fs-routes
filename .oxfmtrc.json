@@ -10,8 +10,8 @@
     "**/routes.support.js",
     "**/routes.support.d.ts",
     ".remix-fs-routes/**",
-    "testbed/bundlers-fixture/app/routes.ts",
-    "testbed/bundlers-fixture/app/routes.controller.ts",
-    "testbed/bundlers-fixture/.remix-fs-routes/**"
+    "test-app/app/routes.ts",
+    "test-app/app/routes.controller.ts",
+    "test-app/.remix-fs-routes/**"
   ]
 }

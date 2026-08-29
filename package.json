@@ -63,7 +63,7 @@
   "scripts": {
     "build": "tsdown",
     "check": "pnpm fmt:check && pnpm typecheck && pnpm test && pnpm build && pnpm check:testbeds",
-    "check:testbeds": "pnpm --recursive --workspace-concurrency=1 --filter './testbed/*' --if-present run check",
+    "check:testbeds": "pnpm --filter remix-fs-routes-testbed-app check",
     "fmt": "oxfmt .",
     "fmt:check": "oxfmt --check .",
     "test": "vitest run",

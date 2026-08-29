@@ -1,5 +1,5 @@
 packages:
-  - 'testbed/*'
+  - 'test-app'
 
 allowBuilds:
   core-js: true

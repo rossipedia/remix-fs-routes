@@ -4,9 +4,9 @@ dist/
 coverage/
 *.log
 .remix-fs-routes/
-testbed/**/+route.ts
-testbed/bundlers-fixture/app/routes.js
-testbed/bundlers-fixture/app/routes.controller.js
-testbed/bundlers-fixture/app/routes.support.js
-testbed/bundlers-fixture/app/routes.support.d.ts
-testbed/*/dist/
+test-app/**/+route.ts
+test-app/app/routes.js
+test-app/app/routes.controller.js
+test-app/app/routes.support.js
+test-app/app/routes.support.d.ts
+test-app/dist/
