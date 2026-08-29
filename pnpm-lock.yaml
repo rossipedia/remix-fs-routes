@@ -58,13 +58,13 @@ importers:
         specifier: ^12.3.0
         version: 12.3.0(rollup@4.62.5)(tslib@2.8.1)(typescript@5.9.3)
       '@rsbuild/core':
-        specifier: ^2.1.13
+        specifier: 2.1.13
         version: 2.1.13(core-js@3.50.0)
       '@rspack/cli':
-        specifier: ^2.1.10
+        specifier: 2.1.10
         version: 2.1.10(@rspack/core@2.1.10(@swc/helpers@0.5.23))
       '@rspack/core':
-        specifier: ^2.1.10
+        specifier: 2.1.10
         version: 2.1.10(@swc/helpers@0.5.23)
       '@types/node':
         specifier: ^24.0.0

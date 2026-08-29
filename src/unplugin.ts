@@ -118,6 +118,12 @@ export const unpluginFactory: UnpluginFactory<RemixFsRoutesPluginOptions | undef
         server.watcher.add(resolved.rootDirectory)
       },
     },
+    rollup: {
+      async options(inputOptions) {
+        await queueRefresh()
+        return inputOptions
+      },
+    },
     esbuild: {
       setup(build) {
         build.onResolve({ filter: /.*/, namespace: 'remix-fs-routes' }, ({ path: id }) =>

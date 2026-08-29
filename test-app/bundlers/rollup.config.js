@@ -12,8 +12,8 @@ export default {
     warn(warning)
   },
   plugins: [
-    typescript({ compilerOptions: { rewriteRelativeImportExtensions: true } }),
     remixFsRoutes(pluginOptions),
+    typescript({ compilerOptions: { rewriteRelativeImportExtensions: true } }),
   ],
   output: {
     file: 'dist/rollup/bundle.mjs',

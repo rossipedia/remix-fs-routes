@@ -11,6 +11,15 @@
   "type": "module",
   "packageManager": "pnpm@11.21.0",
   "license": "MIT",
+  "author": "Bryan Ross <git@rossipedia.com> (https://rossipedia.com)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rossipedia/remix-fs-routes.git"
+  },
+  "homepage": "https://github.com/rossipedia/remix-fs-routes#readme",
+  "bugs": {
+    "url": "https://github.com/rossipedia/remix-fs-routes/issues"
+  },
   "files": [
     "bin",
     "dist",
@@ -73,7 +82,8 @@
     "fmt": "oxfmt .",
     "fmt:check": "oxfmt --check .",
     "prepack": "pnpm build",
-    "test": "vitest run",
+    "test": "vitest run --exclude test/greenfield.test.ts",
+    "test:greenfield": "vitest run test/greenfield.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -93,6 +103,6 @@
     "remix": "^3.0.0-beta.10"
   },
   "engines": {
-    "node": ">=20.19.0"
+    "node": ">=24.3.0"
   }
 }
