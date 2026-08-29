@@ -2,6 +2,12 @@
   "name": "remix-fs-routes",
   "version": "0.1.0",
   "description": "File-system route conventions for Remix 3",
+  "keywords": [
+    "remix",
+    "routing",
+    "file-system routing",
+    "unplugin"
+  ],
   "type": "module",
   "packageManager": "pnpm@11.21.0",
   "license": "MIT",
@@ -66,6 +72,7 @@
     "check:testbeds": "pnpm --filter remix-fs-routes-testbed-app check",
     "fmt": "oxfmt .",
     "fmt:check": "oxfmt --check .",
+    "prepack": "pnpm build",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
@@ -81,6 +88,9 @@
     "tsdown": "^0.15.0",
     "typescript": "^5.9.0",
     "vitest": "^3.2.0"
+  },
+  "peerDependencies": {
+    "remix": "^3.0.0-beta.10"
   },
   "engines": {
     "node": ">=20.19.0"

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import path from 'node:path'
-import { realpathSync } from 'node:fs'
+import { readFileSync, realpathSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 import { resolveOptions } from './convention.js'
@@ -15,6 +15,16 @@ interface CliOptions extends WriteRouteArtifactsOptions {
   version?: boolean
   typegen?: boolean
 }
+
+const packageMetadata = JSON.parse(
+  readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
+) as { version?: unknown }
+
+if (typeof packageMetadata.version !== 'string') {
+  throw new Error('Package version is missing from package.json.')
+}
+
+export const version = packageMetadata.version
 
 export async function run(argv = process.argv.slice(2)): Promise<number> {
   let options: CliOptions
@@ -31,7 +41,7 @@ export async function run(argv = process.argv.slice(2)): Promise<number> {
     return 0
   }
   if (options.version) {
-    console.log('0.1.0')
+    console.log(version)
     return 0
   }
 

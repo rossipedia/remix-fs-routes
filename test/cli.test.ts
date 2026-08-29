@@ -1,8 +1,21 @@
+import path from 'node:path'
+import { readFileSync } from 'node:fs'
+import { mkdtemp, symlink } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { fileURLToPath } from 'node:url'
+
 import { describe, expect, it } from 'vitest'
 
-import { isMainModule, parseArguments } from '../src/cli.js'
+import { isMainModule, parseArguments, version } from '../src/cli.js'
 
 describe('CLI argument parsing', () => {
+  it('reads its version from package metadata', () => {
+    let packageMetadata = JSON.parse(
+      readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
+    )
+    expect(version).toBe(packageMetadata.version)
+  })
+
   it('accepts generation, watch, and repeated ignore options', () => {
     expect(
       parseArguments([
@@ -59,7 +72,3 @@ describe('CLI argument parsing', () => {
     expect(isMainModule(import.meta.url, entry)).toBe(true)
   })
 })
-import path from 'node:path'
-import { mkdtemp, symlink } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { fileURLToPath } from 'node:url'
