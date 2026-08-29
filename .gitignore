@@ -5,6 +5,7 @@ coverage/
 *.log
 .remix-fs-routes/
 test-app/**/+route.ts
+test-app/**/+controller.ts
 test-app/app/routes.js
 test-app/app/routes.controller.js
 test-app/app/routes.support.js

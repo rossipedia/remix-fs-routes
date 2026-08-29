@@ -19,7 +19,7 @@ Each bundler keeps its native configuration in `bundlers/` and writes to its own
 | Farm        | `bundlers/farm.config.ts`     | `dist/farm/`                       |
 | Bun         | `bundlers/build.bun.mjs`      | `dist/bun/`                        |
 
-The CLI server imports the physical router. Bundler entry points import the controller and route map
+The CLI server imports the physical router. Bundler entry points import the route registration function and route map
 through the default virtual module IDs. The shared renderer uses `remix/middleware/render` with
 `renderToStream`; the routes exercise frame rendering, streaming, request cancellation, dynamic and
 optional parameters, a catch-all, deep paths, trailing-slash indexes, and escaped literal suffixes.

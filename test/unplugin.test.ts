@@ -73,7 +73,7 @@ describe('unplugin', () => {
       'export { href, routes } from',
     )
     await expect(load?.call(loadContext, controllerId as string)).resolves.toContain(
-      `from "${defaultRoutesVirtualModuleId}"`,
+      'export { registerRoutes } from',
     )
   })
 
@@ -114,6 +114,16 @@ describe('unplugin', () => {
     })
     expect(await readFile(path.join(cwd, 'app/routes/contact/+route.ts'), 'utf8')).toContain(
       'routes["contact"]',
+    )
+
+    let controllerModule = path.join(contactDirectory, 'controller.ts')
+    await writeFile(controllerModule, 'export default { middleware: [] }\n')
+    await plugin.watchChange?.call(context, controllerModule, { event: 'create' })
+    expect(await readFile(path.join(contactDirectory, '+controller.ts'), 'utf8')).toContain(
+      'createRouteController()',
+    )
+    expect(await readFile(path.join(cwd, 'app/routes.controller.ts'), 'utf8')).toContain(
+      './routes/contact/controller.ts',
     )
   })
 

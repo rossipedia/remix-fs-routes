@@ -49,7 +49,8 @@ async function watchArtifacts(
     usePolling: options.pollingIntervalMs !== undefined,
     interval: options.pollingIntervalMs,
     ignored: (watchedPath) =>
-      path.basename(watchedPath).startsWith('.') || path.basename(watchedPath) === '+route.ts',
+      path.basename(watchedPath).startsWith('.') ||
+      ['+route.ts', '+controller.ts'].includes(path.basename(watchedPath)),
   })
   let timer: NodeJS.Timeout | undefined
   let closed = false

@@ -40,10 +40,20 @@ export interface RouteManifestEntry {
   parentId?: string
   /** Whether a final `_index` segment adds a required trailing slash. */
   trailingSlash: boolean
+  /** Controller boundaries that wrap this route, from outermost to innermost. */
+  controllerIds: string[]
+}
+
+export interface RouteControllerManifestEntry {
+  /** Stable controller id derived from the route folder name. */
+  id: string
+  /** Controller module path relative to the application directory. */
+  file: string
 }
 
 export interface RouteManifest {
   routes: RouteManifestEntry[]
+  controllers: RouteControllerManifestEntry[]
   appDirectory: string
   rootDirectory: string
 }
@@ -55,7 +65,7 @@ export interface GenerateRouteArtifactsOptions extends FileSystemRoutesOptions {
   controllerOutput?: string
   /** Export name for the Remix route map. Defaults to `routes`. */
   routesExportName?: string
-  /** Export name for the Remix controller. Defaults to `controller`. */
+  /** Export name for the route registration function. Defaults to `registerRoutes`. */
   controllerExportName?: string
   /** Generated virtual-module declarations, relative to `cwd`. Defaults to `.remix-fs-routes/types`. */
   typegenDirectory?: string
@@ -64,6 +74,7 @@ export interface GenerateRouteArtifactsOptions extends FileSystemRoutesOptions {
 export type GeneratedRouteArtifactKind =
   | 'routes'
   | 'controller'
+  | 'controller-module'
   | 'route-module'
   | 'route-support'
   | 'virtual-types'
@@ -74,6 +85,7 @@ export interface GeneratedRouteArtifact {
   output: string
   source: string
   routeId?: string
+  controllerId?: string
 }
 
 export interface GenerateRouteArtifactsResult {
@@ -98,9 +110,4 @@ export interface WriteRouteArtifactsResult {
   manifest: RouteManifest
 }
 
-export interface RemixFsRoutesPluginOptions extends GenerateRouteArtifactsOptions {
-  /** Virtual route-map module id. Defaults to `virtual:remix-fs-routes/routes`. */
-  routesVirtualModuleId?: string
-  /** Virtual controller module id. Defaults to `virtual:remix-fs-routes/controller`. */
-  controllerVirtualModuleId?: string
-}
+export type RemixFsRoutesPluginOptions = GenerateRouteArtifactsOptions

@@ -78,6 +78,24 @@ describe('watchRouteArtifacts', () => {
       let aboutCompanion = path.join(cwd, 'app/routes/about/+route.ts')
       expect(await readFile(aboutCompanion, 'utf8')).toContain('routes["about"]')
 
+      let controllerModule = path.join(aboutDirectory, 'controller.ts')
+      let controllerAdded = nextResult((result) =>
+        result.manifest.controllers.some((controller) => controller.id === 'about'),
+      )
+      await writeFile(controllerModule, 'export default { middleware: [] }\n')
+      await controllerAdded
+      let controllerCompanion = path.join(aboutDirectory, '+controller.ts')
+      expect(await readFile(controllerCompanion, 'utf8')).toContain('createRouteController()')
+      expect(await readFile(aboutCompanion, 'utf8')).toContain('ControllerContext')
+
+      let controllerRemoved = nextResult(
+        (result) => !result.manifest.controllers.some((controller) => controller.id === 'about'),
+      )
+      await unlink(controllerModule)
+      await controllerRemoved
+      await expect(readFile(controllerCompanion, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' })
+      expect(await readFile(aboutCompanion, 'utf8')).not.toContain('ControllerContext')
+
       let removed = nextResult(
         (result) => !result.manifest.routes.some((route) => route.id === 'about'),
       )

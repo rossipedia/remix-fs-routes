@@ -9,6 +9,7 @@ import {
   type FileSystemRoutesOptions,
   type ResolvedFileSystemRoutesOptions,
   type RouteManifest,
+  type RouteControllerManifestEntry,
   type RouteManifestEntry,
 } from './types.js'
 
@@ -18,12 +19,18 @@ export interface ParsedSegment {
   value: string
   raw: string
   optional: boolean
+  pathless: boolean
 }
 
 interface Candidate {
   absoluteFile: string
   file: string
   id: string
+}
+
+interface RouteCandidates {
+  routes: Candidate[]
+  controllers: Candidate[]
 }
 
 export class RouteConventionError extends Error {
@@ -48,25 +55,32 @@ export function resolveOptions(
 export async function scanRoutes(options: FileSystemRoutesOptions = {}): Promise<RouteManifest> {
   let resolved = resolveOptions(options)
   let candidates = await findRouteModules(resolved)
-  let entries = buildManifestEntries(candidates)
+  let controllers = buildControllerEntries(candidates.controllers)
+  let entries = buildManifestEntries(candidates.routes, controllers)
 
   return {
     routes: entries,
+    controllers,
     appDirectory: toPosix(path.relative(resolved.cwd, resolved.appDirectory)) || '.',
     rootDirectory: toPosix(path.relative(resolved.cwd, resolved.rootDirectory)) || '.',
   }
 }
 
-async function findRouteModules(options: ResolvedFileSystemRoutesOptions): Promise<Candidate[]> {
+async function findRouteModules(
+  options: ResolvedFileSystemRoutesOptions,
+): Promise<RouteCandidates> {
   let directoryEntries
   try {
     directoryEntries = await readdir(options.rootDirectory, { withFileTypes: true })
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return { routes: [], controllers: [] }
+    }
     throw error
   }
 
   let candidates: Candidate[] = []
+  let controllers: Candidate[] = []
   for (let entry of directoryEntries.sort((a, b) => a.name.localeCompare(b.name))) {
     let absoluteEntry = path.join(options.rootDirectory, entry.name)
     if (isIgnored(absoluteEntry, options)) continue
@@ -87,6 +101,13 @@ async function findRouteModules(options: ResolvedFileSystemRoutesOptions): Promi
       )
     }
 
+    let controllerFiles = findNamedRouteModules(children, 'controller')
+    if (controllerFiles.length > 1) {
+      throw new RouteConventionError(
+        `Route folder ${displayPath(absoluteEntry, options.cwd)} contains multiple controller modules: ${controllerFiles.join(', ')}.`,
+      )
+    }
+
     let legacyFiles = [
       ...findNamedRouteModules(children, 'route'),
       ...findNamedRouteModules(children, 'index'),
@@ -101,14 +122,23 @@ async function findRouteModules(options: ResolvedFileSystemRoutesOptions): Promi
     }
 
     let moduleName = actionFiles[0]
-    if (!moduleName) continue
-    let absoluteFile = path.join(absoluteEntry, moduleName)
-    if (!isIgnored(absoluteFile, options)) {
-      candidates.push(candidateFromFile(absoluteFile, options))
+    if (moduleName) {
+      let absoluteFile = path.join(absoluteEntry, moduleName)
+      if (!isIgnored(absoluteFile, options)) {
+        candidates.push(candidateFromFile(absoluteFile, options))
+      }
+    }
+
+    let controllerName = controllerFiles[0]
+    if (controllerName) {
+      let absoluteFile = path.join(absoluteEntry, controllerName)
+      if (!isIgnored(absoluteFile, options)) {
+        controllers.push(candidateFromFile(absoluteFile, options))
+      }
     }
   }
 
-  return candidates
+  return { routes: candidates, controllers }
 }
 
 function candidateFromFile(
@@ -122,20 +152,21 @@ function candidateFromFile(
   return { absoluteFile, file: relativeToApp, id }
 }
 
-function buildManifestEntries(candidates: Candidate[]): RouteManifestEntry[] {
-  let byId = new Map<string, Candidate>()
-  for (let candidate of candidates) {
-    let conflict = byId.get(candidate.id)
-    if (conflict) {
-      throw new RouteConventionError(
-        `Route id collision for "${candidate.id}": ${conflict.file} and ${candidate.file}.`,
-      )
-    }
-    byId.set(candidate.id, candidate)
-  }
+function buildControllerEntries(candidates: Candidate[]): RouteControllerManifestEntry[] {
+  let byId = uniqueCandidates(candidates, 'Controller')
+  return [...byId.values()]
+    .sort((a, b) => a.id.localeCompare(b.id))
+    .map(({ id, file }) => ({ id, file }))
+}
 
+function buildManifestEntries(
+  candidates: Candidate[],
+  controllers: RouteControllerManifestEntry[],
+): RouteManifestEntry[] {
+  let byId = uniqueCandidates(candidates, 'Route')
   let ids = [...byId.keys()].sort((a, b) => a.localeCompare(b))
-  let entries = ids.map((id) => createManifestEntry(byId.get(id)!, ids))
+  let controllerIds = controllers.map((controller) => controller.id)
+  let entries = ids.map((id) => createManifestEntry(byId.get(id)!, ids, controllerIds))
   let routablePaths = new Map<string, RouteManifestEntry>()
 
   for (let entry of entries) {
@@ -151,7 +182,26 @@ function buildManifestEntries(candidates: Candidate[]): RouteManifestEntry[] {
   return entries
 }
 
-function createManifestEntry(candidate: Candidate, ids: string[]): RouteManifestEntry {
+function uniqueCandidates(candidates: Candidate[], label: string): Map<string, Candidate> {
+  let byId = new Map<string, Candidate>()
+  for (let candidate of candidates) {
+    let conflict = byId.get(candidate.id)
+    if (conflict) {
+      throw new RouteConventionError(
+        `${label} id collision for "${candidate.id}": ${conflict.file} and ${candidate.file}.`,
+      )
+    }
+    byId.set(candidate.id, candidate)
+  }
+
+  return byId
+}
+
+function createManifestEntry(
+  candidate: Candidate,
+  ids: string[],
+  controllerIds: string[],
+): RouteManifestEntry {
   let segments = parseRouteSegments(candidate.id)
   let trailingSlash = segments.at(-1)?.raw === '_index'
   for (let [segmentIndex, segment] of segments.entries()) {
@@ -161,7 +211,9 @@ function createManifestEntry(candidate: Candidate, ids: string[]): RouteManifest
       )
     }
   }
-  let routeSegments = trailingSlash ? segments.slice(0, -1) : segments
+  let routeSegments = (trailingSlash ? segments.slice(0, -1) : segments).filter(
+    (segment) => !segment.pathless,
+  )
   let pathValue = routeSegments.map(toReactRouterSegment).filter(Boolean).join('/')
   let pattern = toRemixPattern(routeSegments)
   if (trailingSlash && pattern !== '/') {
@@ -176,6 +228,7 @@ function createManifestEntry(candidate: Candidate, ids: string[]): RouteManifest
     pattern,
     parentId: findParentId(candidate.id, ids),
     trailingSlash,
+    controllerIds: findControllerIds(candidate.id, controllerIds),
   }
 }
 
@@ -196,7 +249,9 @@ export function parseRouteSegments(routeId: string): ParsedSegment[] {
         `Route segment "${raw}" in "${routeId}" contains a reserved character. Escape literals with brackets.`,
       )
     }
-    segments.push({ value, raw, optional })
+    let pathless = raw.startsWith('_') && raw !== '_index'
+    if (!pathless && raw.endsWith('_') && value.endsWith('_')) value = value.slice(0, -1)
+    segments.push({ value, raw, optional, pathless })
     value = ''
     raw = ''
     optional = false
@@ -310,6 +365,16 @@ function findParentId(routeId: string, ids: string[]): string | undefined {
       ['.', '/'].includes(routeId[candidate.length] ?? ''),
   )
   return matches.sort((a, b) => b.length - a.length)[0]
+}
+
+function findControllerIds(routeId: string, ids: string[]): string[] {
+  return ids
+    .filter(
+      (candidate) =>
+        candidate === routeId ||
+        (routeId.startsWith(candidate) && ['.', '/'].includes(routeId[candidate.length] ?? '')),
+    )
+    .sort((a, b) => a.length - b.length || a.localeCompare(b))
 }
 
 function findNamedRouteModules(entries: Dirent<string>[], basename: string): string[] {

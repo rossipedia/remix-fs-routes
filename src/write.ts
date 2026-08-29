@@ -71,17 +71,21 @@ async function writeGeneratedArtifacts(
   let expectedTypes = new Set(
     generated.artifacts.filter(isTypeArtifact).map((artifact) => path.resolve(artifact.output)),
   )
-  let expectedRouteModules = new Set(
+  let expectedCompanions = new Set(
     generated.artifacts
-      .filter((artifact) => artifact.kind === 'route-module')
+      .filter(
+        (artifact) => artifact.kind === 'route-module' || artifact.kind === 'controller-module',
+      )
       .map((artifact) => path.resolve(artifact.output)),
   )
-  let includesRouteModules = generated.artifacts.some(
-    (artifact) => artifact.kind === 'route-module' && include(artifact),
+  let includesCompanions = generated.artifacts.some(
+    (artifact) =>
+      (artifact.kind === 'route-module' || artifact.kind === 'controller-module') &&
+      include(artifact),
   )
   let removed = [
     ...(await findStaleRouteTypes(options, expectedTypes)),
-    ...(includesRouteModules ? await findStaleRouteModules(options, expectedRouteModules) : []),
+    ...(includesCompanions ? await findStaleCompanions(options, expectedCompanions) : []),
   ].sort((a, b) => a.localeCompare(b))
   if (!options.check) {
     for (let output of removed) await unlink(output)
@@ -162,7 +166,7 @@ async function findGeneratedTypeFiles(directory: string): Promise<string[]> {
   return files
 }
 
-async function findStaleRouteModules(
+async function findStaleCompanions(
   options: GenerateRouteArtifactsOptions,
   expected: Set<string>,
 ): Promise<string[]> {
@@ -177,10 +181,12 @@ async function findStaleRouteModules(
   let legacy: string[] = []
   for (let directory of directories) {
     if (!directory.isDirectory()) continue
-    let candidate = path.join(rootDirectory, directory.name, '+route.ts')
-    if (expected.has(path.resolve(candidate))) continue
-    let source = await readOptionalFile(candidate)
-    if (source?.startsWith(generatedFileHeader)) legacy.push(candidate)
+    for (let filename of ['+route.ts', '+controller.ts']) {
+      let candidate = path.join(rootDirectory, directory.name, filename)
+      if (expected.has(path.resolve(candidate))) continue
+      let source = await readOptionalFile(candidate)
+      if (source?.startsWith(generatedFileHeader)) legacy.push(candidate)
+    }
   }
   return legacy
 }

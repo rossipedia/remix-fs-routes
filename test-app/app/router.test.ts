@@ -25,6 +25,8 @@ describe('shared generated route modules', () => {
     let first = await reader.read()
     let firstChunk = decoder.decode(first.value, { stream: true })
 
+    assert.equal(response.headers.get('x-route-controller'), 'frames')
+
     assert.match(firstChunk, /Loading route summary/)
     assert.doesNotMatch(firstChunk, /Streamed route summary/)
 
@@ -41,6 +43,21 @@ describe('shared generated route modules', () => {
     assert.match(body, /data-frame-src="http:\/\/test\/frames\/summary"/)
     assert.match(body, /data-frame-src="http:\/\/test\/frames\/details"/)
     assert.match(body, /data-top-frame-src="http:\/\/test\/"/)
+  })
+
+  it('scopes controller middleware to its logical route tree', async () => {
+    let router = createAppRouter()
+    let [detailResponse, summaryResponse, aboutResponse] = await Promise.all([
+      router.fetch(new Request('http://test/frames/details')),
+      router.fetch(new Request('http://test/frames/summary')),
+      router.fetch(new Request(`http://test${href('/about')}`)),
+    ])
+
+    assert.equal(detailResponse.headers.get('x-route-controller'), 'frames')
+    assert.equal(detailResponse.headers.get('x-route-controller-detail'), 'frames.details')
+    assert.equal(summaryResponse.headers.get('x-route-controller'), 'frames')
+    assert.equal(summaryResponse.headers.get('x-route-controller-detail'), null)
+    assert.equal(aboutResponse.headers.get('x-route-controller'), null)
   })
 
   it('provides typed dynamic parameters to route actions', async () => {

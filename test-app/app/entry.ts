@@ -3,12 +3,12 @@ import assert from 'node:assert/strict'
 import { createRenderer } from '#/render.tsx'
 import { renderWith } from 'remix/middleware/render'
 import { createRouter } from 'remix/router'
-import { controller } from 'virtual:remix-fs-routes/controller'
-import { href, routes } from 'virtual:remix-fs-routes/routes'
+import { registerRoutes } from 'virtual:remix-fs-routes/controller'
+import { href } from 'virtual:remix-fs-routes/routes'
 
 let render = renderWith(createRenderer)
 let router = createRouter({ middleware: [render] })
-router.map(routes, controller)
+registerRoutes(router)
 
 let indexResponse = await router.fetch(new Request(`http://test${href('/')}`))
 assert.equal(indexResponse.status, 200)

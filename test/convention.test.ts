@@ -53,8 +53,8 @@ describe('scanRoutes', () => {
       about: '/about',
       'about._index': '/about/',
       'blog.$slug': '/blog/:slug',
-      '_auth.login': '/_auth/login',
-      'concerts_.mine': '/concerts_/mine',
+      '_auth.login': '/login',
+      'concerts_.mine': '/concerts/mine',
       search_index: '/search_index',
       '[_status]': '/_status',
       'account[_]': '/account_',
@@ -71,6 +71,37 @@ describe('scanRoutes', () => {
     expect(routes['($lang).categories']!.href()).toBe('/categories')
     expect(routes['($lang).categories']!.href({ lang: 'es' })).toBe('/es/categories')
     expect(routes['about._index']!.href()).toBe('/about/')
+  })
+
+  it('discovers logical controller boundaries and assigns routes to their ancestry', async () => {
+    let cwd = await fixture([
+      '_auth/controller.ts',
+      '_auth.login/action.ts',
+      'admin/action.ts',
+      'admin/controller.tsx',
+      'admin.users/action.ts',
+      'admin.projects/controller.mts',
+      'admin.projects.settings/action.ts',
+      'admin_.health/action.ts',
+    ])
+
+    let manifest = await scanRoutes({ cwd })
+    expect(manifest.controllers).toEqual([
+      { id: '_auth', file: 'routes/_auth/controller.ts' },
+      { id: 'admin', file: 'routes/admin/controller.tsx' },
+      { id: 'admin.projects', file: 'routes/admin.projects/controller.mts' },
+    ])
+    expect(
+      Object.fromEntries(
+        manifest.routes.map((entry) => [entry.id, [entry.pattern, entry.controllerIds]]),
+      ),
+    ).toEqual({
+      '_auth.login': ['/login', ['_auth']],
+      admin: ['/admin', ['admin']],
+      'admin.users': ['/admin/users', ['admin']],
+      'admin.projects.settings': ['/admin/projects/settings', ['admin', 'admin.projects']],
+      'admin_.health': ['/admin/health', []],
+    })
   })
 
   it('accepts action entrypoints without scanning colocated files', async () => {
@@ -153,6 +184,11 @@ describe('scanRoutes', () => {
 
     let folderConflict = await fixture(['account/action.mts', 'account/action.cjs'])
     await expect(scanRoutes({ cwd: folderConflict })).rejects.toThrow('multiple action modules')
+
+    let controllerConflict = await fixture(['account/controller.mts', 'account/controller.cjs'])
+    await expect(scanRoutes({ cwd: controllerConflict })).rejects.toThrow(
+      'multiple controller modules',
+    )
 
     let pathConflict = await fixture(folders(['about', '[about]']))
     await expect(scanRoutes({ cwd: pathConflict })).rejects.toThrow('Route path collision')

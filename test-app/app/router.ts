@@ -2,8 +2,7 @@ import { renderWith } from 'remix/middleware/render'
 import { createRouter, type MiddlewareContext } from 'remix/router'
 
 import { createRenderer } from '#/render.tsx'
-import { routes } from '#/routes.ts'
-import { controller } from '#/routes.controller.ts'
+import { registerRoutes } from '#/routes.controller.ts'
 
 const render = renderWith(createRenderer)
 
@@ -17,7 +16,7 @@ declare module 'remix/router' {
 
 export function createAppRouter() {
   let router = createRouter<AppContext>({ middleware: [render] })
-  router.map(routes, controller)
+  registerRoutes(router)
   return router
 }
 

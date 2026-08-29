@@ -176,7 +176,7 @@ function formatError(error: unknown): string {
 
 const help = `Usage: remix-fs-routes [generate|typegen] [options]
 
-Generate Remix 3 route companions, a route map, and a controller from route folders.
+Generate Remix 3 route companions, a route map, and route registration from route folders.
 
 Commands:
   generate                        Generate runtime modules and virtual declarations (default)
@@ -186,11 +186,11 @@ Options:
   --app, --app-directory <dir>    App directory (default: app)
   --root, --root-directory <dir>  Routes directory relative to app (default: routes)
   --routes-output <file>          Generated route map (default: app/routes.ts)
-  --controller-output <file>      Generated controller (default: app/routes.controller.ts)
+  --controller-output <file>      Generated route registration (default: app/routes.controller.ts)
   --typegen-directory <dir>       Virtual declarations directory (default: .remix-fs-routes/types)
   --ignore <glob>                 Ignore route files; repeatable
   --routes-export <name>          Route map export name (default: routes)
-  --controller-export <name>      Controller export name (default: controller)
+  --controller-export <name>      Route registration export name (default: registerRoutes)
   --cwd <dir>                     Project directory (default: current directory)
   --check                         Exit 1 when generated output is stale
   -w, --watch                     Regenerate when route files change

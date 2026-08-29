@@ -45,11 +45,11 @@ const installedDependencyVersions = new Map<string, string>()
 const appEntry = `import assert from 'node:assert/strict'
 
 import { createRouter } from 'remix/router'
-import { controller } from 'virtual:remix-fs-routes/controller'
-import { href, routes } from 'virtual:remix-fs-routes/routes'
+import { registerRoutes } from 'virtual:remix-fs-routes/controller'
+import { href } from 'virtual:remix-fs-routes/routes'
 
 let router = createRouter()
-router.map(routes, controller)
+registerRoutes(router)
 
 let response = await router.fetch(new Request(\`http://test\${href('/')}\`))
 assert.equal(response.status, 200)

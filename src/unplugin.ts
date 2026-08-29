@@ -20,11 +20,8 @@ export const unpluginFactory: UnpluginFactory<RemixFsRoutesPluginOptions | undef
     )
   }
   let options = { ...userOptions }
-  let routesVirtualModuleId = options.routesVirtualModuleId ?? defaultRoutesVirtualModuleId
-  let controllerVirtualModuleId =
-    options.controllerVirtualModuleId ?? defaultControllerVirtualModuleId
-  let resolvedRoutesVirtualModuleId = `\0${routesVirtualModuleId}`
-  let resolvedControllerVirtualModuleId = `\0${controllerVirtualModuleId}`
+  let resolvedRoutesVirtualModuleId = `\0${defaultRoutesVirtualModuleId}`
+  let resolvedControllerVirtualModuleId = `\0${defaultControllerVirtualModuleId}`
   let resolved = resolveOptions(options)
   let generated: GenerateRouteArtifactsResult | undefined
   let generatedFingerprint: string | undefined
@@ -69,8 +66,8 @@ export const unpluginFactory: UnpluginFactory<RemixFsRoutesPluginOptions | undef
       if (meta.framework !== 'esbuild') addWatchFiles(this, result, resolved)
     },
     async resolveId(id) {
-      if (id === routesVirtualModuleId) return resolvedRoutesVirtualModuleId
-      if (id === controllerVirtualModuleId) return resolvedControllerVirtualModuleId
+      if (id === defaultRoutesVirtualModuleId) return resolvedRoutesVirtualModuleId
+      if (id === defaultControllerVirtualModuleId) return resolvedControllerVirtualModuleId
       return undefined
     },
     loadInclude(id) {
@@ -88,10 +85,7 @@ export const unpluginFactory: UnpluginFactory<RemixFsRoutesPluginOptions | undef
         addWatchFiles(this, result, resolved)
         return generateVirtualControllerSource(
           result,
-          resolved.appDirectory,
-          routesVirtualModuleId,
-          options.routesExportName ?? 'routes',
-          options.controllerExportName ?? 'controller',
+          options.controllerExportName ?? 'registerRoutes',
         )
       }
       return undefined
@@ -154,18 +148,15 @@ export const unpluginFactory: UnpluginFactory<RemixFsRoutesPluginOptions | undef
         virtualModulesByScheme.set(scheme, modules)
       }
 
-      addVirtualModule(routesVirtualModuleId, async () => {
+      addVirtualModule(defaultRoutesVirtualModuleId, async () => {
         let result = await requireGenerated()
         return generateVirtualRoutesSource(result, options.routesExportName ?? 'routes')
       })
-      addVirtualModule(controllerVirtualModuleId, async () => {
+      addVirtualModule(defaultControllerVirtualModuleId, async () => {
         let result = await requireGenerated()
         return generateVirtualControllerSource(
           result,
-          resolved.appDirectory,
-          routesVirtualModuleId,
-          options.routesExportName ?? 'routes',
-          options.controllerExportName ?? 'controller',
+          options.controllerExportName ?? 'registerRoutes',
         )
       })
 
@@ -198,29 +189,14 @@ function generateVirtualRoutesSource(
 
 function generateVirtualControllerSource(
   generated: GenerateRouteArtifactsResult,
-  appDirectory: string,
-  routesVirtualModuleId: string,
-  routesExportName: string,
   controllerExportName: string,
 ): string {
-  let imports = generated.manifest.routes.map((entry, index) => {
-    let routeModule = path.resolve(appDirectory, entry.file).split(path.sep).join('/')
-    return `import routeAction${index} from ${JSON.stringify(routeModule)}`
-  })
-  let actions = generated.manifest.routes
-    .map((entry, index) => `    ${JSON.stringify(entry.id)}: routeAction${index},`)
-    .join('\n')
+  let controllerArtifact = generated.artifacts.find((artifact) => artifact.kind === 'controller')
+  if (!controllerArtifact) throw new Error('Generated controller artifact is missing.')
+  let controllerModule = controllerArtifact.output.split(path.sep).join('/')
   return [
     generatedFileHeader,
-    "import { createController } from 'remix/router'",
-    `import { ${routesExportName} } from ${JSON.stringify(routesVirtualModuleId)}`,
-    ...imports,
-    '',
-    `export const ${controllerExportName} = createController(${routesExportName}, {`,
-    '  actions: {',
-    actions,
-    '  },',
-    '})',
+    `export { ${controllerExportName} } from ${JSON.stringify(controllerModule)}`,
     '',
   ].join('\n')
 }
@@ -236,7 +212,9 @@ function fingerprint(generated: GenerateRouteArtifactsResult): string {
 }
 
 function isWatchedRouteFile(file: string, rootDirectory: string): boolean {
-  return isInside(file, rootDirectory) && path.basename(file) !== '+route.ts'
+  return (
+    isInside(file, rootDirectory) && !['+route.ts', '+controller.ts'].includes(path.basename(file))
+  )
 }
 
 function addWatchFiles(
@@ -251,6 +229,9 @@ function addWatchFiles(
   }
   for (let route of generated.manifest.routes) {
     context.addWatchFile(path.resolve(resolved.appDirectory, route.file))
+  }
+  for (let controller of generated.manifest.controllers) {
+    context.addWatchFile(path.resolve(resolved.appDirectory, controller.file))
   }
 }
 

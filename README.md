@@ -3,6 +3,58 @@
 File-system route modules for Remix 3, available as a standalone CLI or plugins for Vite, Rollup,
 Rolldown, webpack, Rspack, Rsbuild, esbuild, Farm, and Bun.
 
+## Quickstart
+
+Install the package:
+
+```sh
+pnpm add --save-dev remix-fs-routes
+```
+
+Create a route action. Its folder name defines the URL:
+
+```ts
+// app/routes/posts.$slug/action.ts
+import { createAction } from './+route.ts'
+
+export default createAction(({ params }) => {
+  return new Response(`Post ${params.slug}`)
+})
+```
+
+Add the plugin to your bundler config. For Vite:
+
+```ts
+// vite.config.ts
+import { defineConfig } from 'vite'
+import remixFsRoutes from 'remix-fs-routes/vite'
+
+export default defineConfig({
+  plugins: [remixFsRoutes()],
+})
+```
+
+Register the generated routes with your Remix router:
+
+```ts
+import { createRouter } from 'remix/router'
+import { registerRoutes } from 'virtual:remix-fs-routes/controller'
+
+export const router = createRouter()
+registerRoutes(router)
+```
+
+Include the generated declarations in `tsconfig.json`:
+
+```json
+{
+  "include": ["app", ".remix-fs-routes/types/**/*"]
+}
+```
+
+The plugin generates route companions and refreshes them during bundler watch or development mode.
+For a bundler-free setup, run `remix-fs-routes generate` before typechecking or starting the app.
+
 ## Install
 
 ```sh
@@ -58,15 +110,14 @@ export default defineConfig({
 })
 ```
 
-Import the generated virtual route map and controller when creating your router:
+Import the generated registration function when creating your router:
 
 ```ts
 import { createRouter } from 'remix/router'
-import { controller } from 'virtual:remix-fs-routes/controller'
-import { routes } from 'virtual:remix-fs-routes/routes'
+import { registerRoutes } from 'virtual:remix-fs-routes/controller'
 
 export const router = createRouter()
-router.map(routes, controller)
+registerRoutes(router)
 ```
 
 Include the generated declarations in your TypeScript project:
@@ -94,7 +145,7 @@ Bundler watch and development modes automatically regenerate routes when files c
 
 ## Use the CLI
 
-Generate the route companions, route map, controller, and virtual-module declarations:
+Generate the route companions, route map, registration function, and virtual-module declarations:
 
 ```sh
 pnpm exec remix-fs-routes generate
@@ -105,11 +156,10 @@ Import the physical outputs in your router:
 ```ts
 import { createRouter } from 'remix/router'
 
-import { controller } from './routes.controller.ts'
-import { routes } from './routes.ts'
+import { registerRoutes } from './routes.controller.ts'
 
 export const router = createRouter()
-router.map(routes, controller)
+registerRoutes(router)
 ```
 
 Common commands:
@@ -148,27 +198,59 @@ href('/(:lang/)categories', { lang: 'es' })
 | `($lang).categories` | `/categories`, `/:lang/categories` |
 | `reports.$id[.pdf]`  | `/reports/:id.pdf`                 |
 | `sitemap[.]xml`      | `/sitemap.xml`                     |
-| `_auth.login`        | `/_auth/login`                     |
+| `_auth.login`        | `/login`                           |
+| `admin_.health`      | `/admin/health`                    |
+| `[_auth].login`      | `/_auth/login`                     |
 
 Route entrypoints may use any JavaScript or TypeScript extension: `.js`, `.jsx`, `.mjs`, `.cjs`,
 `.ts`, `.tsx`, `.mts`, or `.cts`. Each action module must provide a default export.
 
-`_index` is the only special underscore name. As a final segment it represents the trailing-slash
-variant of a URL. Other leading and trailing underscores are literal URL characters. Pathless and
-nested-layout route conventions are not supported.
+`_index` as the final segment represents the trailing-slash variant of a URL. A leading underscore
+makes a segment pathless, and a trailing underscore opts a route out of its matching logical
+controller boundary. Escape an underscore with brackets when it should be literal.
+
+### Logical controller hierarchy
+
+Add `controller.ts` to a route folder to apply middleware to that route and its logical
+descendants:
+
+```text
+app/routes/
+  _auth/controller.ts
+  _auth.login/action.ts
+  _auth.register/action.ts
+```
+
+The generated `+controller.ts` provides a strongly typed factory:
+
+```ts
+import { requireUser } from '#/middleware/require-user.ts'
+import { createController } from './+controller.ts'
+
+export default createController({ middleware: [requireUser] })
+```
+
+Nested controller middleware is composed from outermost to innermost. A trailing underscore opts
+out of the matching boundary: `admin.users` belongs to `admin/controller.ts`, while
+`admin_.health` does not. Controller modules may use any supported JavaScript or TypeScript
+extension. This hierarchy affects controller organization and request handling only;
+`remix-fs-routes` does not provide a nested UI or layout convention.
 
 ## Configuration
 
-Configure plugins with the shared options:
+All configuration is optional. The following example shows every option with its default value:
 
 ```ts
 remixFsRoutes({
+  cwd: process.cwd(),
   appDirectory: 'app',
   rootDirectory: 'routes',
+  ignoredRouteFiles: [],
   routesOutput: 'app/routes.ts',
   controllerOutput: 'app/routes.controller.ts',
+  routesExportName: 'routes',
+  controllerExportName: 'registerRoutes',
   typegenDirectory: '.remix-fs-routes/types',
-  ignoredRouteFiles: ['**/*.test.ts'],
 })
 ```
 
@@ -180,6 +262,7 @@ Add generated files to source control ignores:
 ```gitignore
 .remix-fs-routes/
 app/routes/**/+route.ts
+app/routes/**/+controller.ts
 ```
 
 ## Programmatic API
