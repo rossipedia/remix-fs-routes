@@ -1,6 +1,6 @@
 {
   "name": "remix-fs-routes",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "File-system route conventions for Remix 3",
   "keywords": [
     "remix",
