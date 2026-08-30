@@ -16,13 +16,6 @@
     "type": "git",
     "url": "git+https://github.com/rossipedia/remix-fs-routes.git"
   },
-  "devEngines": {
-    "runtime": {
-      "name": "node",
-      "version": "^24.20.0",
-      "onFail": "download"
-    }
-  },
   "publishConfig": {
     "access": "public"
   },
