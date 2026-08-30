@@ -1,6 +1,6 @@
 import type { Middleware } from 'remix/router'
 
-import { createController } from './+controller.ts'
+import { createAction, createController } from './+route.ts'
 
 const markFrameRoutes: Middleware = async (_context, next) => {
   let response = await next()
@@ -8,4 +8,6 @@ const markFrameRoutes: Middleware = async (_context, next) => {
   return response
 }
 
-export default createController({ middleware: [markFrameRoutes] })
+export let controller = createController({ middleware: [markFrameRoutes] })
+
+export default createAction(() => new Response('Frame routes'))

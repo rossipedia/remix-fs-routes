@@ -257,30 +257,34 @@ controller boundary. Escape an underscore with brackets when it should be litera
 
 ### Logical controller hierarchy
 
-Add `controller.ts` to a route folder to apply middleware to that route and its logical
-descendants:
+Export a named `controller` from an `actions` module to apply middleware to that route and its
+logical descendants:
 
 ```text
 app/routes/
-  _auth/controller.ts
-  _auth.login/actions.ts
-  _auth.register/actions.ts
+  admin/actions.ts
+  admin.users/actions.ts
+  admin.reports/actions.ts
 ```
 
-The generated `+controller.ts` provides a strongly typed factory:
+The generated `+route.ts` provides both strongly typed factories:
 
 ```ts
 import { requireUser } from '#/middleware/require-user.ts'
-import { createController } from './+controller.ts'
+import { createAction, createController } from './+route.ts'
 
-export default createController({ middleware: [requireUser] })
+export let controller = createController({ middleware: [requireUser] })
+
+export default createAction(({ get }) => {
+  let user = get(requireUser)
+  return new Response(`Hello ${user.name}`)
+})
 ```
 
 Nested controller middleware is composed from outermost to innermost. A trailing underscore opts
-out of the matching boundary: `admin.users` belongs to `admin/controller.ts`, while
-`admin_.health` does not. Controller modules may use any supported JavaScript or TypeScript
-extension. This hierarchy affects controller organization and request handling only;
-`remix-fs-routes` does not provide a nested UI or layout convention.
+out of the matching boundary: `admin.users` inherits the controller exported by
+`admin/actions.ts`, while `admin_.health` does not. This hierarchy affects controller organization
+and request handling only; `remix-fs-routes` does not provide a nested UI or layout convention.
 
 ## Configuration
 
@@ -308,7 +312,6 @@ Add generated files to source control ignores:
 ```gitignore
 .remix-fs-routes/
 app/routes/**/+route.ts
-app/routes/**/+controller.ts
 ```
 
 ## Programmatic API

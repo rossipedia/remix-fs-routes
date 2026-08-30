@@ -8,6 +8,7 @@ const routeDefs = {
   "about": "/about",
   "about._index": "/about/",
   "files.$": "/files/*",
+  "frames": "/frames",
   "frames.details": "/frames/details",
   "frames.summary": "/frames/summary",
   "posts.$slug": "/posts/:slug",

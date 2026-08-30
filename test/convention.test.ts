@@ -73,34 +73,33 @@ describe('scanRoutes', () => {
     expect(routes['about._index']!.href()).toBe('/about/')
   })
 
-  it('discovers logical controller boundaries and assigns routes to their ancestry', async () => {
+  it('assigns route-module ancestry for logical controller exports', async () => {
     let cwd = await fixture([
-      '_auth/controller.ts',
+      '_auth/actions.ts',
       '_auth.login/actions.ts',
       'admin/actions.ts',
-      'admin/controller.tsx',
       'admin.users/actions.ts',
-      'admin.projects/controller.mts',
+      'admin.projects/actions.ts',
       'admin.projects.settings/actions.ts',
       'admin_.health/actions.ts',
     ])
 
     let manifest = await scanRoutes({ cwd })
-    expect(manifest.controllers).toEqual([
-      { id: '_auth', file: 'routes/_auth/controller.ts' },
-      { id: 'admin', file: 'routes/admin/controller.tsx' },
-      { id: 'admin.projects', file: 'routes/admin.projects/controller.mts' },
-    ])
     expect(
       Object.fromEntries(
         manifest.routes.map((entry) => [entry.id, [entry.pattern, entry.controllerIds]]),
       ),
     ).toEqual({
-      '_auth.login': ['/login', ['_auth']],
+      _auth: ['/', ['_auth']],
+      '_auth.login': ['/login', ['_auth', '_auth.login']],
       admin: ['/admin', ['admin']],
-      'admin.users': ['/admin/users', ['admin']],
-      'admin.projects.settings': ['/admin/projects/settings', ['admin', 'admin.projects']],
-      'admin_.health': ['/admin/health', []],
+      'admin.users': ['/admin/users', ['admin', 'admin.users']],
+      'admin.projects': ['/admin/projects', ['admin', 'admin.projects']],
+      'admin.projects.settings': [
+        '/admin/projects/settings',
+        ['admin', 'admin.projects', 'admin.projects.settings'],
+      ],
+      'admin_.health': ['/admin/health', ['admin_.health']],
     })
   })
 
@@ -190,9 +189,9 @@ describe('scanRoutes', () => {
     let folderConflict = await fixture(['account/actions.mts', 'account/actions.cjs'])
     await expect(scanRoutes({ cwd: folderConflict })).rejects.toThrow('multiple "actions" modules')
 
-    let controllerConflict = await fixture(['account/controller.mts', 'account/controller.cjs'])
-    await expect(scanRoutes({ cwd: controllerConflict })).rejects.toThrow(
-      'multiple controller modules',
+    let legacyController = await fixture(['account/actions.ts', 'account/controller.ts'])
+    await expect(scanRoutes({ cwd: legacyController })).rejects.toThrow(
+      'move the controller to a named "controller" export in its actions module',
     )
 
     let pathConflict = await fixture(folders(['about', '[about]']))

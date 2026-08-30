@@ -119,10 +119,11 @@ describe('route artifact generation', () => {
     expect(controller.source).toContain('export function registerRoutes')
     expect(controller.source).toContain('import * as routeModule1 from')
     expect(controller.source).toContain(
-      'registerRouteModule(router, routes["users.$id"], routeModule1)',
+      'registerRouteModule(router, routes["users.$id"], routeModule1, [',
     )
     expect(userRoute.source).toContain('export const route = routes["users.$id"]')
-    expect(userRoute.source).toContain('createRouteAction(route)')
+    expect(userRoute.source).toContain('export const createController = createRouteController()')
+    expect(userRoute.source).toContain('import type * as routeModule0 from "./actions.tsx"')
     expect(userRoute.source).not.toMatch(/from ["']remix-fs-routes/)
     expect(userRoute.output).toContain('app/routes/users.$id/+route.ts')
     expect(virtualTypes.source).toContain('readonly "users.$id": Route<\'ANY\', "/users/:id">')
@@ -144,34 +145,34 @@ describe('route artifact generation', () => {
 
   it('generates typed controller factories and composes nested controller middleware', async () => {
     let cwd = await project()
-    for (let [id, filename] of [
-      ['users', 'controller.ts'],
-      ['users.$id', 'controller.tsx'],
-    ]) {
-      let directory = path.join(cwd, 'app/routes', id)
-      await mkdir(directory, { recursive: true })
-      await writeFile(
-        path.join(directory, filename),
-        `import { createController } from './+controller.ts'\nexport default createController({ middleware: [] })\n`,
-      )
-    }
+    let usersDirectory = path.join(cwd, 'app/routes/users')
+    await mkdir(usersDirectory, { recursive: true })
+    await writeFile(
+      path.join(usersDirectory, 'actions.ts'),
+      `import { createController } from './+route.ts'\nexport let controller = createController({ middleware: [] })\n`,
+    )
+    await writeFile(
+      path.join(cwd, 'app/routes/users.$id/actions.tsx'),
+      [
+        "import { createAction, createController } from './+route.ts'",
+        'export let controller = createController({ middleware: [] })',
+        'export default createAction(() => new Response())',
+        '',
+      ].join('\n'),
+    )
 
     let result = await generateRouteArtifacts({ cwd })
-    let companions = result.artifacts.filter((artifact) => artifact.kind === 'controller-module')
     let userRoute = result.artifacts.find((artifact) => artifact.routeId === 'users.$id')!
     let controller = result.artifacts.find((artifact) => artifact.kind === 'controller')!
 
-    expect(companions).toHaveLength(2)
-    expect(companions[0]!.source).toContain(
-      'export const createController = createRouteController()',
-    )
-    expect(userRoute.source).toContain('import type routeController0 from "../users/controller.ts"')
-    expect(userRoute.source).toContain('import type routeController1 from "./controller.tsx"')
+    expect(userRoute.source).toContain('export const createController = createRouteController()')
+    expect(userRoute.source).toContain('import type * as routeModule0 from "../users/actions.ts"')
+    expect(userRoute.source).toContain('import type * as routeModule1 from "./actions.tsx"')
     expect(userRoute.source).toContain('ControllerContext<InheritedMiddleware>')
-    expect(controller.source).toContain('...routeController0.middleware')
-    expect(controller.source).toContain('...routeController1.middleware')
+    expect(controller.source).toContain('routeModule1,')
+    expect(controller.source).toContain('routeModule2,')
     expect(controller.source).toContain(
-      'registerRouteModule(router, routes["users.$id"], routeModule1, [',
+      'registerRouteModule(router, routes["users.$id"], routeModule2, [',
     )
   })
 
@@ -182,10 +183,10 @@ describe('route artifact generation', () => {
       await mkdir(path.join(cwd, 'app/routes/api.$id'), { recursive: true })
       await mkdir(path.join(cwd, 'app/routes/health'), { recursive: true })
       await writeFile(
-        path.join(cwd, 'app/routes/api/controller.ts'),
+        path.join(cwd, 'app/routes/api/actions.ts'),
         [
           "import type { Middleware } from 'remix/router'",
-          "import { createController } from './+controller.ts'",
+          "import { createController } from './+route.ts'",
           '',
           'const markController: Middleware = async (_context, next) => {',
           '  let response = await next()',
@@ -193,7 +194,7 @@ describe('route artifact generation', () => {
           '  return response',
           '}',
           '',
-          'export default createController({ middleware: [markController] })',
+          'export let controller = createController({ middleware: [markController] })',
           '',
         ].join('\n'),
       )
@@ -201,7 +202,7 @@ describe('route artifact generation', () => {
         path.join(cwd, 'app/routes/api.$id/actions.ts'),
         [
           "import type { Middleware } from 'remix/router'",
-          "import { createAction } from './+route.ts'",
+          "import { createAction, createController } from './+route.ts'",
           '',
           'const markAction: Middleware = async (_context, next) => {',
           '  let response = await next()',
@@ -209,6 +210,7 @@ describe('route artifact generation', () => {
           '  return response',
           '}',
           '',
+          'export let controller = createController({ middleware: [] })',
           'export let get = createAction(({ params }) => new Response(`get:${params.id}`))',
           'export let head = createAction(() => new Response(null, { headers: { "x-handler": "head" } }))',
           'export let post = createAction({ middleware: [markAction] })(',

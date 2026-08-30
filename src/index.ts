@@ -23,7 +23,6 @@ export type {
   RemixFsRoutesPluginOptions,
   ResolvedFileSystemRoutesOptions,
   RouteManifest,
-  RouteControllerManifestEntry,
   RouteManifestEntry,
   WriteRouteArtifactsOptions,
   WriteRouteArtifactsResult,

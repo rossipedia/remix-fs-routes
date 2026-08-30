@@ -73,15 +73,11 @@ async function writeGeneratedArtifacts(
   )
   let expectedCompanions = new Set(
     generated.artifacts
-      .filter(
-        (artifact) => artifact.kind === 'route-module' || artifact.kind === 'controller-module',
-      )
+      .filter((artifact) => artifact.kind === 'route-module')
       .map((artifact) => path.resolve(artifact.output)),
   )
   let includesCompanions = generated.artifacts.some(
-    (artifact) =>
-      (artifact.kind === 'route-module' || artifact.kind === 'controller-module') &&
-      include(artifact),
+    (artifact) => artifact.kind === 'route-module' && include(artifact),
   )
   let removed = [
     ...(await findStaleRouteTypes(options, expectedTypes)),

@@ -7,13 +7,12 @@ import * as routeModule1 from "./routes/($lang).hello/actions.tsx"
 import * as routeModule2 from "./routes/about/actions.tsx"
 import * as routeModule3 from "./routes/about._index/actions.tsx"
 import * as routeModule4 from "./routes/files.$/actions.tsx"
-import * as routeModule5 from "./routes/frames.details/actions.tsx"
-import * as routeModule6 from "./routes/frames.summary/actions.tsx"
-import * as routeModule7 from "./routes/posts.$slug/actions.tsx"
-import * as routeModule8 from "./routes/projects.$projectId.settings/actions.tsx"
-import * as routeModule9 from "./routes/reports.$reportId[.pdf]/actions.tsx"
-import routeController0 from "./routes/frames/controller.ts"
-import routeController1 from "./routes/frames.details/controller.ts"
+import * as routeModule5 from "./routes/frames/actions.tsx"
+import * as routeModule6 from "./routes/frames.details/actions.tsx"
+import * as routeModule7 from "./routes/frames.summary/actions.tsx"
+import * as routeModule8 from "./routes/posts.$slug/actions.tsx"
+import * as routeModule9 from "./routes/projects.$projectId.settings/actions.tsx"
+import * as routeModule10 from "./routes/reports.$reportId[.pdf]/actions.tsx"
 
 type DefaultContext = RouterTypes extends {
   context: infer context extends RequestContext<any, any>
@@ -22,19 +21,40 @@ type DefaultContext = RouterTypes extends {
   : RequestContext
 
 export function registerRoutes(router: RouteBuilder<DefaultContext>): void {
-  registerRouteModule(router, routes["_index"], routeModule0)
-  registerRouteModule(router, routes["($lang).hello"], routeModule1)
-  registerRouteModule(router, routes["about"], routeModule2)
-  registerRouteModule(router, routes["about._index"], routeModule3)
-  registerRouteModule(router, routes["files.$"], routeModule4)
-  registerRouteModule(router, routes["frames.details"], routeModule5, [
-    ...routeController0.middleware,
-    ...routeController1.middleware,
+  registerRouteModule(router, routes["_index"], routeModule0, [
+    routeModule0,
   ])
-  registerRouteModule(router, routes["frames.summary"], routeModule6, [
-    ...routeController0.middleware,
+  registerRouteModule(router, routes["($lang).hello"], routeModule1, [
+    routeModule1,
   ])
-  registerRouteModule(router, routes["posts.$slug"], routeModule7)
-  registerRouteModule(router, routes["projects.$projectId.settings"], routeModule8)
-  registerRouteModule(router, routes["reports.$reportId[.pdf]"], routeModule9)
+  registerRouteModule(router, routes["about"], routeModule2, [
+    routeModule2,
+  ])
+  registerRouteModule(router, routes["about._index"], routeModule3, [
+    routeModule2,
+    routeModule3,
+  ])
+  registerRouteModule(router, routes["files.$"], routeModule4, [
+    routeModule4,
+  ])
+  registerRouteModule(router, routes["frames"], routeModule5, [
+    routeModule5,
+  ])
+  registerRouteModule(router, routes["frames.details"], routeModule6, [
+    routeModule5,
+    routeModule6,
+  ])
+  registerRouteModule(router, routes["frames.summary"], routeModule7, [
+    routeModule5,
+    routeModule7,
+  ])
+  registerRouteModule(router, routes["posts.$slug"], routeModule8, [
+    routeModule8,
+  ])
+  registerRouteModule(router, routes["projects.$projectId.settings"], routeModule9, [
+    routeModule9,
+  ])
+  registerRouteModule(router, routes["reports.$reportId[.pdf]"], routeModule10, [
+    routeModule10,
+  ])
 }

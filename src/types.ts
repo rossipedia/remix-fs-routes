@@ -40,20 +40,12 @@ export interface RouteManifestEntry {
   parentId?: string
   /** Whether a final `_index` segment adds a required trailing slash. */
   trailingSlash: boolean
-  /** Controller boundaries that wrap this route, from outermost to innermost. */
+  /** Route modules whose optional controller exports wrap this route, outermost first. */
   controllerIds: string[]
-}
-
-export interface RouteControllerManifestEntry {
-  /** Stable controller id derived from the route folder name. */
-  id: string
-  /** Controller module path relative to the application directory. */
-  file: string
 }
 
 export interface RouteManifest {
   routes: RouteManifestEntry[]
-  controllers: RouteControllerManifestEntry[]
   appDirectory: string
   rootDirectory: string
 }
@@ -74,7 +66,6 @@ export interface GenerateRouteArtifactsOptions extends FileSystemRoutesOptions {
 export type GeneratedRouteArtifactKind =
   | 'routes'
   | 'controller'
-  | 'controller-module'
   | 'route-module'
   | 'route-support'
   | 'virtual-types'
@@ -85,7 +76,6 @@ export interface GeneratedRouteArtifact {
   output: string
   source: string
   routeId?: string
-  controllerId?: string
 }
 
 export interface GenerateRouteArtifactsResult {

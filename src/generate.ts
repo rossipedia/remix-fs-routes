@@ -58,19 +58,6 @@ export async function generateRouteArtifacts(
     })
   }
 
-  for (let entry of manifest.controllers) {
-    let controllerModule = path.resolve(resolved.appDirectory, entry.file)
-    artifacts.push({
-      kind: 'controller-module',
-      output: path.join(path.dirname(controllerModule), '+controller.ts'),
-      controllerId: entry.id,
-      source: generateControllerModuleSource(
-        path.join(path.dirname(controllerModule), '+controller.ts'),
-        supportOutput,
-      ),
-    })
-  }
-
   artifacts.push(
     {
       kind: 'route-support',
@@ -175,17 +162,13 @@ function generateControllerSource(
     let routeModule = path.resolve(appDirectory, entry.file)
     return `import * as routeModule${index} from ${JSON.stringify(relativeImport(output, routeModule))}`
   })
-  let controllerImports = manifest.controllers.map((entry, index) => {
-    let controllerModule = path.resolve(appDirectory, entry.file)
-    return `import routeController${index} from ${JSON.stringify(relativeImport(output, controllerModule))}`
-  })
   let registrations = manifest.routes.flatMap((entry, routeIndex) => {
-    let middleware = entry.controllerIds.map((id) => {
-      let controllerIndex = manifest.controllers.findIndex((entry) => entry.id === id)
-      return `    ...routeController${controllerIndex}.middleware,`
+    let controllers = entry.controllerIds.map((id) => {
+      let controllerIndex = manifest.routes.findIndex((entry) => entry.id === id)
+      return `    routeModule${controllerIndex},`
     })
     let call = `  registerRouteModule(router, ${routesExportName}[${JSON.stringify(entry.id)}], routeModule${routeIndex}`
-    return middleware.length > 0 ? [call + ', [', ...middleware, '  ])'] : [call + ')']
+    return [call + ', [', ...controllers, '  ])']
   })
   let typescript = isTypeScriptOutput(output)
   return [
@@ -196,7 +179,6 @@ function generateControllerSource(
     `import { registerRouteModule } from ${JSON.stringify(relativeImport(output, getRouteSupportOutput(routesOutput)))}`,
     `import { ${routesExportName} } from ${JSON.stringify(relativeImport(output, routesOutput))}`,
     ...actionImports,
-    ...controllerImports,
     '',
     ...(typescript
       ? [
@@ -227,46 +209,29 @@ function generateRouteModuleSource(
   routesExportName: string,
 ): string {
   let controllerImports = entry.controllerIds.map((controllerId, index) => {
-    let controller = manifest.controllers.find((entry) => entry.id === controllerId)!
+    let controller = manifest.routes.find((entry) => entry.id === controllerId)!
     let controllerModule = path.resolve(appDirectory, controller.file)
-    return `import type routeController${index} from ${JSON.stringify(relativeImport(output, controllerModule))}`
+    return `import type * as routeModule${index} from ${JSON.stringify(relativeImport(output, controllerModule))}`
   })
   let middlewareType = entry.controllerIds.map(
-    (_, index) => `  ...ControllerMiddleware<typeof routeController${index}>,`,
+    (_, index) => `  ...ControllerMiddleware<typeof routeModule${index}>,`,
   )
   return [
     generatedFileHeader,
     `import { ${routesExportName} } from ${JSON.stringify(relativeImport(output, routesOutput))}`,
-    `import { createRouteAction } from ${JSON.stringify(relativeImport(output, supportOutput))}`,
-    ...(controllerImports.length > 0
-      ? [
-          `import type { ControllerContext, ControllerMiddleware } from ${JSON.stringify(relativeImport(output, supportOutput))}`,
-          ...controllerImports,
-        ]
-      : []),
+    `import { createRouteAction, createRouteController } from ${JSON.stringify(relativeImport(output, supportOutput))}`,
+    `import type { ControllerContext, ControllerMiddleware } from ${JSON.stringify(relativeImport(output, supportOutput))}`,
+    ...controllerImports,
     '',
     `export const route = ${routesExportName}[${JSON.stringify(entry.id)}]`,
-    ...(middlewareType.length > 0
-      ? [
-          'type InheritedMiddleware = [',
-          ...middlewareType,
-          ']',
-          '',
-          'export const createAction = createRouteAction<',
-          '  typeof route,',
-          '  ControllerContext<InheritedMiddleware>',
-          '>(route)',
-        ]
-      : ['export const createAction = createRouteAction(route)']),
+    'type InheritedMiddleware = [',
+    ...middlewareType,
+    ']',
     '',
-  ].join('\n')
-}
-
-function generateControllerModuleSource(output: string, supportOutput: string): string {
-  return [
-    generatedFileHeader,
-    `import { createRouteController } from ${JSON.stringify(relativeImport(output, supportOutput))}`,
-    '',
+    'export const createAction = createRouteAction<',
+    '  typeof route,',
+    '  ControllerContext<InheritedMiddleware>',
+    '>(route)',
     'export const createController = createRouteController()',
     '',
   ].join('\n')
@@ -301,7 +266,11 @@ function generateRouteSupportSource(): string {
     '  return (options) => options',
     '}',
     '',
-    'export function registerRouteModule(router, route, routeModule, middleware = []) {',
+    'export function registerRouteModule(router, route, routeModule, controllerModules = []) {',
+    '  let middleware = controllerModules.flatMap(',
+    '    (controllerModule) => controllerModule.controller?.middleware ?? [],',
+    '  )',
+    '',
     '  for (let name in unsupportedRouteMethods) {',
     '    if (Object.hasOwn(routeModule, name)) {',
     '      throw new TypeError(',
@@ -354,10 +323,12 @@ function generateRouteSupportTypesSource(): string {
     '}',
     '  ? context',
     '  : RequestContext',
-    'export type ControllerMiddleware<controller> = controller extends {',
-    '  middleware: infer middleware extends readonly AnyMiddleware[]',
+    'export type ControllerMiddleware<routeModule> = routeModule extends {',
+    '  controller: infer controller',
     '}',
-    '  ? middleware',
+    '  ? controller extends { middleware: infer middleware extends readonly AnyMiddleware[] }',
+    '    ? middleware',
+    '    : []',
     '  : []',
     'export type ControllerContext<middleware extends readonly AnyMiddleware[]> =',
     '  MiddlewareContext<middleware, DefaultContext>',
@@ -400,18 +371,18 @@ function generateRouteSupportTypesSource(): string {
     "export type UnsupportedRouteMethodExport = 'connect' | 'trace'",
     'export type StandardRouteMethodExport = RouteMethodExport | UnsupportedRouteMethodExport',
     'export type RouteActionModule = {',
+    '  controller?: { middleware?: readonly AnyMiddleware[] }',
     '  default?: unknown',
     '} & Partial<Record<StandardRouteMethodExport, unknown>>',
     '',
     'export declare function registerRouteModule<',
     '  context extends RequestContext<any, any>,',
     '  route extends ActionRoute,',
-    '  const middleware extends readonly AnyMiddleware[] = [],',
     '>(',
     '  router: RouteBuilder<context>,',
     '  route: route,',
     '  routeModule: RouteActionModule,',
-    '  middleware?: readonly [...middleware],',
+    '  controllerModules?: readonly RouteActionModule[],',
     '): void',
     '',
   ].join('\n')

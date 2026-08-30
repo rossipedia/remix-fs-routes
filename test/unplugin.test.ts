@@ -53,7 +53,9 @@ describe('unplugin', () => {
     expect(routes).toContain('"posts.$slug": "/posts/:slug"')
     expect(routes).toContain('export function href<const pattern extends RoutePattern>')
     expect(controller).toContain('import * as routeModule0 from')
-    expect(controller).toContain('registerRouteModule(router, routes["posts.$slug"], routeModule0)')
+    expect(controller).toContain(
+      'registerRouteModule(router, routes["posts.$slug"], routeModule0, [',
+    )
     expect(routeModule).toContain('routes["posts.$slug"]')
     expect(routeModule).not.toMatch(/from ["']remix-fs-routes/)
     expect(addWatchFile).toHaveBeenCalledWith(path.join(cwd, 'app/routes'))
@@ -117,14 +119,18 @@ describe('unplugin', () => {
       'routes["contact"]',
     )
 
-    let controllerModule = path.join(contactDirectory, 'controller.ts')
-    await writeFile(controllerModule, 'export default { middleware: [] }\n')
-    await plugin.watchChange?.call(context, controllerModule, { event: 'create' })
-    expect(await readFile(path.join(contactDirectory, '+controller.ts'), 'utf8')).toContain(
-      'createRouteController()',
+    await writeFile(
+      contactModule,
+      'export let controller = { middleware: [] }\nexport default () => new Response()\n',
     )
+    await plugin.watchChange?.call(context, contactModule, { event: 'update' })
+    await expect(
+      readFile(path.join(contactDirectory, '+controller.ts'), 'utf8'),
+    ).rejects.toMatchObject({
+      code: 'ENOENT',
+    })
     expect(await readFile(path.join(cwd, 'app/routes.controller.ts'), 'utf8')).toContain(
-      './routes/contact/controller.ts',
+      'routeModule0,',
     )
   })
 

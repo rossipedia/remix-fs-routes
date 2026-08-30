@@ -9,7 +9,6 @@ import {
   type FileSystemRoutesOptions,
   type ResolvedFileSystemRoutesOptions,
   type RouteManifest,
-  type RouteControllerManifestEntry,
   type RouteManifestEntry,
 } from './types.js'
 
@@ -26,11 +25,6 @@ interface Candidate {
   absoluteFile: string
   file: string
   id: string
-}
-
-interface RouteCandidates {
-  routes: Candidate[]
-  controllers: Candidate[]
 }
 
 export class RouteConventionError extends Error {
@@ -55,32 +49,27 @@ export function resolveOptions(
 export async function scanRoutes(options: FileSystemRoutesOptions = {}): Promise<RouteManifest> {
   let resolved = resolveOptions(options)
   let candidates = await findRouteModules(resolved)
-  let controllers = buildControllerEntries(candidates.controllers)
-  let entries = buildManifestEntries(candidates.routes, controllers)
+  let entries = buildManifestEntries(candidates)
 
   return {
     routes: entries,
-    controllers,
     appDirectory: toPosix(path.relative(resolved.cwd, resolved.appDirectory)) || '.',
     rootDirectory: toPosix(path.relative(resolved.cwd, resolved.rootDirectory)) || '.',
   }
 }
 
-async function findRouteModules(
-  options: ResolvedFileSystemRoutesOptions,
-): Promise<RouteCandidates> {
+async function findRouteModules(options: ResolvedFileSystemRoutesOptions): Promise<Candidate[]> {
   let directoryEntries
   try {
     directoryEntries = await readdir(options.rootDirectory, { withFileTypes: true })
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      return { routes: [], controllers: [] }
+      return []
     }
     throw error
   }
 
   let candidates: Candidate[] = []
-  let controllers: Candidate[] = []
   for (let entry of directoryEntries.sort((a, b) => a.name.localeCompare(b.name))) {
     let absoluteEntry = path.join(options.rootDirectory, entry.name)
     if (isIgnored(absoluteEntry, options)) continue
@@ -102,9 +91,9 @@ async function findRouteModules(
     }
 
     let controllerFiles = findNamedRouteModules(children, 'controller')
-    if (controllerFiles.length > 1) {
+    if (controllerFiles.length > 0) {
       throw new RouteConventionError(
-        `Route folder ${displayPath(absoluteEntry, options.cwd)} contains multiple controller modules: ${controllerFiles.join(', ')}.`,
+        `Route folder ${displayPath(absoluteEntry, options.cwd)} uses ${controllerFiles.join(', ')}; move the controller to a named "controller" export in its actions module.`,
       )
     }
 
@@ -129,17 +118,9 @@ async function findRouteModules(
         candidates.push(candidateFromFile(absoluteFile, options))
       }
     }
-
-    let controllerName = controllerFiles[0]
-    if (controllerName) {
-      let absoluteFile = path.join(absoluteEntry, controllerName)
-      if (!isIgnored(absoluteFile, options)) {
-        controllers.push(candidateFromFile(absoluteFile, options))
-      }
-    }
   }
 
-  return { routes: candidates, controllers }
+  return candidates
 }
 
 function candidateFromFile(
@@ -153,21 +134,10 @@ function candidateFromFile(
   return { absoluteFile, file: relativeToApp, id }
 }
 
-function buildControllerEntries(candidates: Candidate[]): RouteControllerManifestEntry[] {
-  let byId = uniqueCandidates(candidates, 'Controller')
-  return [...byId.values()]
-    .sort((a, b) => a.id.localeCompare(b.id))
-    .map(({ id, file }) => ({ id, file }))
-}
-
-function buildManifestEntries(
-  candidates: Candidate[],
-  controllers: RouteControllerManifestEntry[],
-): RouteManifestEntry[] {
+function buildManifestEntries(candidates: Candidate[]): RouteManifestEntry[] {
   let byId = uniqueCandidates(candidates, 'Route')
   let ids = [...byId.keys()].sort((a, b) => a.localeCompare(b))
-  let controllerIds = controllers.map((controller) => controller.id)
-  let entries = ids.map((id) => createManifestEntry(byId.get(id)!, ids, controllerIds))
+  let entries = ids.map((id) => createManifestEntry(byId.get(id)!, ids))
   let routablePaths = new Map<string, RouteManifestEntry>()
 
   for (let entry of entries) {
@@ -198,11 +168,7 @@ function uniqueCandidates(candidates: Candidate[], label: string): Map<string, C
   return byId
 }
 
-function createManifestEntry(
-  candidate: Candidate,
-  ids: string[],
-  controllerIds: string[],
-): RouteManifestEntry {
+function createManifestEntry(candidate: Candidate, ids: string[]): RouteManifestEntry {
   let segments = parseRouteSegments(candidate.id)
   let trailingSlash = segments.at(-1)?.raw === '_index'
   for (let [segmentIndex, segment] of segments.entries()) {
@@ -229,7 +195,7 @@ function createManifestEntry(
     pattern,
     parentId: findParentId(candidate.id, ids),
     trailingSlash,
-    controllerIds: findControllerIds(candidate.id, controllerIds),
+    controllerIds: findControllerIds(candidate.id, ids),
   }
 }
 

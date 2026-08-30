@@ -230,9 +230,6 @@ function addWatchFiles(
   for (let route of generated.manifest.routes) {
     context.addWatchFile(path.resolve(resolved.appDirectory, route.file))
   }
-  for (let controller of generated.manifest.controllers) {
-    context.addWatchFile(path.resolve(resolved.appDirectory, controller.file))
-  }
 }
 
 function isInside(file: string, directory: string): boolean {
