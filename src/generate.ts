@@ -385,9 +385,9 @@ function generateVirtualTypesSource(
 ): string {
   let routePatterns = [...new Set(manifest.routes.map((entry) => absolutePattern(entry.pattern)))]
   let routePatternType =
-   routePatterns.length > 0
-     ? routePatterns.map((pattern) => JSON.stringify(pattern)).join(' | ')
-     : 'never'
+    routePatterns.length > 0
+      ? routePatterns.map((pattern) => JSON.stringify(pattern)).join(' | ')
+      : 'never'
   let routeTypes = manifest.routes
     .map(
       (entry) =>
