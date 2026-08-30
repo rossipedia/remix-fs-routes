@@ -29,3 +29,5 @@ export type {
   WriteRouteArtifactsResult,
   WrittenRouteArtifact,
 } from './types.js'
+
+// foo
