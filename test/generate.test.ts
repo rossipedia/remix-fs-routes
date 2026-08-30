@@ -1,6 +1,8 @@
 import path from 'node:path'
-import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises'
+import { execFile } from 'node:child_process'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
+import { promisify } from 'node:util'
 
 import { describe, expect, it } from 'vitest'
 
@@ -10,6 +12,9 @@ import {
   writeRouteArtifacts,
   writeRouteTypes,
 } from '../src/index.js'
+
+const execFileAsync = promisify(execFile)
+const repositoryDirectory = path.resolve(import.meta.dirname, '..')
 
 async function project(): Promise<string> {
   let cwd = await mkdtemp(path.join(tmpdir(), 'remix-fs-routes-generate-'))
@@ -22,6 +27,64 @@ async function project(): Promise<string> {
 }
 
 describe('route artifact generation', () => {
+  it('typechecks, builds, and runs a project with no routes', async () => {
+    let cwd = await mkdtemp(path.join(repositoryDirectory, '.remix-fs-routes-empty-'))
+    try {
+      await writeRouteArtifacts({ cwd })
+      await writeFile(path.join(cwd, 'package.json'), '{"type":"module"}\n')
+      await writeFile(
+        path.join(cwd, 'app/router.ts'),
+        [
+          "import { createRouter } from 'remix/router'",
+          "import { registerRoutes } from './routes.controller.ts'",
+          '',
+          'let router = createRouter()',
+          'registerRoutes(router)',
+          "let response = await router.fetch('http://test/no-routes')",
+          "if (response.status !== 404) throw new Error('Expected the empty router to return 404')",
+          '',
+        ].join('\n'),
+      )
+      await writeFile(
+        path.join(cwd, 'tsconfig.json'),
+        `${JSON.stringify(
+          {
+            compilerOptions: {
+              target: 'ES2022',
+              module: 'NodeNext',
+              moduleResolution: 'NodeNext',
+              strict: true,
+              skipLibCheck: true,
+              allowJs: true,
+              checkJs: false,
+              allowImportingTsExtensions: true,
+              rewriteRelativeImportExtensions: true,
+              rootDir: '.',
+              outDir: 'dist',
+            },
+            include: ['app/**/*'],
+          },
+          null,
+          2,
+        )}\n`,
+      )
+
+      let virtualTypes = await readFile(
+        path.join(cwd, '.remix-fs-routes/types/virtual.d.ts'),
+        'utf8',
+      )
+      expect(virtualTypes).toContain('export type RoutePattern = never')
+
+      await execFileAsync(path.join(repositoryDirectory, 'node_modules/.bin/tsc'), [
+        '--project',
+        path.join(cwd, 'tsconfig.json'),
+      ])
+      await execFileAsync(process.execPath, [path.join(cwd, 'dist/app/router.js')])
+    } finally {
+      await rm(cwd, { recursive: true, force: true })
+    }
+  })
+
   it('emits bound route companions, central runtime modules, and virtual declarations', async () => {
     let cwd = await project()
     let result = await generateRouteArtifacts({ cwd })

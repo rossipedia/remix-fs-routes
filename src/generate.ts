@@ -384,6 +384,10 @@ function generateVirtualTypesSource(
   controllerExportName: string,
 ): string {
   let routePatterns = [...new Set(manifest.routes.map((entry) => absolutePattern(entry.pattern)))]
+  let routePatternType =
+    routePatterns.length > 0
+      ? routePatterns.map((pattern) => JSON.stringify(pattern)).join(' | ')
+      : 'never'
   let routeTypes = manifest.routes
     .map(
       (entry) =>
@@ -396,7 +400,7 @@ function generateVirtualTypesSource(
     "  import type { CreateHrefArgs } from 'remix/route-pattern/href'",
     "  import type { Route } from 'remix/routes'",
     '',
-    `  export type RoutePattern = ${routePatterns.map((pattern) => JSON.stringify(pattern)).join(' | ')}`,
+    `  export type RoutePattern = ${routePatternType}`,
     '  export function href<const pattern extends RoutePattern>(',
     '    pattern: pattern,',
     '    ...args: CreateHrefArgs<pattern>',
