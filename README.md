@@ -6,6 +6,7 @@ Rolldown, webpack, Rspack, Rsbuild, esbuild, Farm, and Bun.
 > [!NOTE]
 >
 > ### 🤖 LLM assistance disclaimer 🤖
+>
 > This project was developed with the assistance of OpenAI's Sol model.
 > While I have been a rather vocal critic of the social, economic, environmental, and most importantly cognitive impacts of LLMs and companies/people/data centers that power them, and have avoided building anything substantial with them outside of work until now, I wanted to hold an informed opinion by actually using one for something substantial of my own.
 >
