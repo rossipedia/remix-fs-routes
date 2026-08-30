@@ -24,10 +24,10 @@ Install the package:
 pnpm add --save-dev remix-fs-routes
 ```
 
-Create a route action. Its folder name defines the URL:
+Create an `actions` module. Its folder name defines the URL:
 
 ```ts
-// app/routes/posts.$slug/action.ts
+// app/routes/posts.$slug/actions.ts
 import { createAction } from './+route.ts'
 
 export default createAction(({ params }) => {
@@ -79,19 +79,19 @@ your own route modules.
 
 ## Create a route
 
-Each endpoint is an `action` module in a direct child folder of `app/routes`. The folder name defines
-both the route ID and URL:
+Each endpoint is an `actions` module in a direct child folder of `app/routes`. The folder name
+defines both the route ID and URL:
 
 ```text
 app/routes/
-  _index/action.ts
-  posts.$slug/action.ts
+  _index/actions.ts
+  posts.$slug/actions.ts
 ```
 
 The generated `+route.ts` companion provides a typed `createAction` factory:
 
 ```ts
-// app/routes/posts.$slug/action.ts
+// app/routes/posts.$slug/actions.ts
 import { createAction } from './+route.ts'
 
 export default createAction(({ params }) => {
@@ -108,6 +108,38 @@ export default createAction({
   return new Response(params.slug)
 })
 ```
+
+Use named exports to handle specific HTTP methods. The default export is the `ANY` fallback for
+methods without a named handler:
+
+```ts
+export let get = createAction(({ params }) => {
+  return new Response(`Post ${params.slug}`)
+})
+
+export let post = createAction(({ params }) => {
+  return new Response(`Created ${params.slug}`, { status: 201 })
+})
+
+export default createAction(({ request }) => {
+  return new Response(`Handled ${request.method}`)
+})
+```
+
+Supported method exports are `get`, `head`, `post`, `put`, `patch`, `delete`, and `options`. Since
+`delete` cannot be used as a JavaScript binding name, export it with an alias:
+
+```ts
+let remove = createAction(() => new Response(null, { status: 204 }))
+export { remove as delete }
+```
+
+HTTP also defines `CONNECT` and `TRACE`, but the Fetch `Request` API and Remix router do not support
+them. Exporting `connect` or `trace` produces a clear error when routes are registered instead of
+silently ignoring the handler.
+
+The default export is optional. A module with only named method handlers returns the router's normal
+not-found response for other methods.
 
 ## Use a bundler plugin
 
@@ -216,7 +248,8 @@ href('/(:lang/)categories', { lang: 'es' })
 | `[_auth].login`      | `/_auth/login`                     |
 
 Route entrypoints may use any JavaScript or TypeScript extension: `.js`, `.jsx`, `.mjs`, `.cjs`,
-`.ts`, `.tsx`, `.mts`, or `.cts`. Each action module must provide a default export.
+`.ts`, `.tsx`, `.mts`, or `.cts`. `actions` modules may export method handlers, a default fallback,
+or both.
 
 `_index` as the final segment represents the trailing-slash variant of a URL. A leading underscore
 makes a segment pathless, and a trailing underscore opts a route out of its matching logical
@@ -230,8 +263,8 @@ descendants:
 ```text
 app/routes/
   _auth/controller.ts
-  _auth.login/action.ts
-  _auth.register/action.ts
+  _auth.login/actions.ts
+  _auth.register/actions.ts
 ```
 
 The generated `+controller.ts` provides a strongly typed factory:

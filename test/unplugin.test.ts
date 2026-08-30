@@ -14,7 +14,7 @@ async function fixture(): Promise<{ cwd: string }> {
   let cwd = await mkdtemp(path.join(tmpdir(), 'remix-fs-routes-unplugin-'))
   let directory = path.join(cwd, 'app/routes/posts.$slug')
   await mkdir(directory, { recursive: true })
-  let routeModule = path.join(directory, 'action.ts')
+  let routeModule = path.join(directory, 'actions.ts')
   await writeFile(routeModule, 'export default () => new Response()\n')
   return { cwd }
 }
@@ -52,7 +52,8 @@ describe('unplugin', () => {
     let routeModule = await readFile(path.join(cwd, 'app/routes/posts.$slug/+route.ts'), 'utf8')
     expect(routes).toContain('"posts.$slug": "/posts/:slug"')
     expect(routes).toContain('export function href<const pattern extends RoutePattern>')
-    expect(controller).toContain('import routeAction0 from')
+    expect(controller).toContain('import * as routeModule0 from')
+    expect(controller).toContain('registerRouteModule(router, routes["posts.$slug"], routeModule0)')
     expect(routeModule).toContain('routes["posts.$slug"]')
     expect(routeModule).not.toMatch(/from ["']remix-fs-routes/)
     expect(addWatchFile).toHaveBeenCalledWith(path.join(cwd, 'app/routes'))
@@ -85,18 +86,18 @@ describe('unplugin', () => {
     await plugin.buildStart?.call(context)
 
     let aboutDirectory = path.join(cwd, 'app/routes/about')
-    let aboutModule = path.join(aboutDirectory, 'action.ts')
+    let aboutModule = path.join(aboutDirectory, 'actions.ts')
     await mkdir(aboutDirectory)
     await writeFile(aboutModule, 'export default () => new Response()\n')
     await plugin.watchChange?.call(context, aboutModule, { event: 'create' })
     expect(await readFile(path.join(cwd, 'app/routes.ts'), 'utf8')).toContain('"about": "/about"')
     expect(await readFile(path.join(cwd, 'app/routes.controller.ts'), 'utf8')).toContain(
-      './routes/about/action.ts',
+      './routes/about/actions.ts',
     )
     expect(addWatchFile).toHaveBeenCalledWith(aboutModule)
 
     let contactDirectory = path.join(cwd, 'app/routes/contact')
-    let contactModule = path.join(contactDirectory, 'action.ts')
+    let contactModule = path.join(contactDirectory, 'actions.ts')
     await unlink(aboutModule)
     await mkdir(contactDirectory)
     await writeFile(contactModule, 'export default () => new Response()\n')
@@ -158,7 +159,7 @@ describe('unplugin', () => {
     )
 
     let aboutDirectory = path.join(cwd, 'app/routes/about')
-    let aboutModule = path.join(aboutDirectory, 'action.ts')
+    let aboutModule = path.join(aboutDirectory, 'actions.ts')
     await mkdir(aboutDirectory)
     await writeFile(aboutModule, 'export default () => new Response()\n')
     await plugin.watchChange?.call(

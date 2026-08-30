@@ -94,10 +94,10 @@ async function findRouteModules(
     if (!entry.isDirectory()) continue
 
     let children = await readdir(absoluteEntry, { withFileTypes: true })
-    let actionFiles = findNamedRouteModules(children, 'action')
-    if (actionFiles.length > 1) {
+    let actionsFiles = findNamedRouteModules(children, 'actions')
+    if (actionsFiles.length > 1) {
       throw new RouteConventionError(
-        `Route folder ${displayPath(absoluteEntry, options.cwd)} contains multiple action modules: ${actionFiles.join(', ')}.`,
+        `Route folder ${displayPath(absoluteEntry, options.cwd)} contains multiple "actions" modules: ${actionsFiles.join(', ')}.`,
       )
     }
 
@@ -109,19 +109,20 @@ async function findRouteModules(
     }
 
     let legacyFiles = [
+      ...findNamedRouteModules(children, 'action'),
       ...findNamedRouteModules(children, 'route'),
       ...findNamedRouteModules(children, 'index'),
     ]
     if (legacyFiles.length > 0) {
-      let actionFilenames = routeModuleExtensions
-        .map((extension) => `action${extension}`)
+      let actionsFilenames = routeModuleExtensions
+        .map((extension) => `actions${extension}`)
         .join(', ')
       throw new RouteConventionError(
-        `Route folder ${displayPath(absoluteEntry, options.cwd)} uses ${legacyFiles.join(', ')}; rename the route module to one of: ${actionFilenames}.`,
+        `Route folder ${displayPath(absoluteEntry, options.cwd)} uses ${legacyFiles.join(', ')}; rename the route module to one of: ${actionsFilenames}.`,
       )
     }
 
-    let moduleName = actionFiles[0]
+    let moduleName = actionsFiles[0]
     if (moduleName) {
       let absoluteFile = path.join(absoluteEntry, moduleName)
       if (!isIgnored(absoluteFile, options)) {

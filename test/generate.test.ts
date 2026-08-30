@@ -21,7 +21,7 @@ async function project(): Promise<string> {
   for (let route of ['_index', 'users.$id']) {
     let directory = path.join(cwd, 'app/routes', route)
     await mkdir(directory, { recursive: true })
-    await writeFile(path.join(directory, 'action.tsx'), 'export default () => new Response()\n')
+    await writeFile(path.join(directory, 'actions.tsx'), 'export default () => new Response()\n')
   }
   return cwd
 }
@@ -109,11 +109,18 @@ describe('route artifact generation', () => {
     expect(routes.source).toContain('return createHref(pattern, ...args)')
     expect(routes.source).not.toContain('routeManifest')
     expect(support.source).toContain('export function createRouteAction()')
+    expect(support.source).toContain('export function registerRouteModule(')
+    expect(support.source).toContain("connect: 'CONNECT'")
+    expect(support.source).toContain("trace: 'TRACE'")
     expect(supportTypes.source).toContain('export declare function createRouteAction<')
+    expect(supportTypes.source).toContain(
+      "export type UnsupportedRouteMethodExport = 'connect' | 'trace'",
+    )
     expect(controller.source).toContain('export function registerRoutes')
-    expect(controller.source).toContain('router.map(routeGroup0, createController(routeGroup0, {')
-    expect(controller.source).toContain('import routeAction1 from')
-    expect(controller.source).toContain('"users.$id": routeAction1')
+    expect(controller.source).toContain('import * as routeModule1 from')
+    expect(controller.source).toContain(
+      'registerRouteModule(router, routes["users.$id"], routeModule1)',
+    )
     expect(userRoute.source).toContain('export const route = routes["users.$id"]')
     expect(userRoute.source).toContain('createRouteAction(route)')
     expect(userRoute.source).not.toMatch(/from ["']remix-fs-routes/)
@@ -163,7 +170,154 @@ describe('route artifact generation', () => {
     expect(userRoute.source).toContain('ControllerContext<InheritedMiddleware>')
     expect(controller.source).toContain('...routeController0.middleware')
     expect(controller.source).toContain('...routeController1.middleware')
-    expect(controller.source).toContain('"users.$id": routeAction1')
+    expect(controller.source).toContain(
+      'registerRouteModule(router, routes["users.$id"], routeModule1, [',
+    )
+  })
+
+  it('typechecks and dispatches named HTTP method exports before the default fallback', async () => {
+    let cwd = await mkdtemp(path.join(repositoryDirectory, '.remix-fs-routes-methods-'))
+    try {
+      await mkdir(path.join(cwd, 'app/routes/api'), { recursive: true })
+      await mkdir(path.join(cwd, 'app/routes/api.$id'), { recursive: true })
+      await mkdir(path.join(cwd, 'app/routes/health'), { recursive: true })
+      await writeFile(
+        path.join(cwd, 'app/routes/api/controller.ts'),
+        [
+          "import type { Middleware } from 'remix/router'",
+          "import { createController } from './+controller.ts'",
+          '',
+          'const markController: Middleware = async (_context, next) => {',
+          '  let response = await next()',
+          "  response.headers.set('x-controller', 'api')",
+          '  return response',
+          '}',
+          '',
+          'export default createController({ middleware: [markController] })',
+          '',
+        ].join('\n'),
+      )
+      await writeFile(
+        path.join(cwd, 'app/routes/api.$id/actions.ts'),
+        [
+          "import type { Middleware } from 'remix/router'",
+          "import { createAction } from './+route.ts'",
+          '',
+          'const markAction: Middleware = async (_context, next) => {',
+          '  let response = await next()',
+          "  response.headers.set('x-action', 'post')",
+          '  return response',
+          '}',
+          '',
+          'export let get = createAction(({ params }) => new Response(`get:${params.id}`))',
+          'export let head = createAction(() => new Response(null, { headers: { "x-handler": "head" } }))',
+          'export let post = createAction({ middleware: [markAction] })(',
+          '  ({ params }) => new Response(`post:${params.id}`),',
+          ')',
+          'export let put = createAction(({ params }) => new Response(`put:${params.id}`))',
+          'export let patch = createAction(({ params }) => new Response(`patch:${params.id}`))',
+          'let remove = createAction(({ params }) => new Response(`delete:${params.id}`))',
+          'export { remove as delete }',
+          'export let options = createAction(() => new Response(null, { status: 204 }))',
+          'export default createAction(({ request }) => new Response(`any:${request.method}`))',
+          '',
+        ].join('\n'),
+      )
+      await writeFile(
+        path.join(cwd, 'app/routes/health/actions.ts'),
+        [
+          "import { createAction } from './+route.ts'",
+          "export let get = createAction(() => new Response('healthy'))",
+          '',
+        ].join('\n'),
+      )
+      await writeRouteArtifacts({ cwd })
+      await writeFile(path.join(cwd, 'package.json'), '{"type":"module"}\n')
+      await writeFile(
+        path.join(cwd, 'app/router.ts'),
+        [
+          "import { createRouter } from 'remix/router'",
+          "import { routes } from './routes.ts'",
+          "import { registerRoutes } from './routes.controller.ts'",
+          "import { registerRouteModule } from './routes.support.js'",
+          '',
+          'let router = createRouter()',
+          'registerRoutes(router)',
+          '',
+          "let get = await router.fetch('http://test/api/42')",
+          "if ((await get.text()) !== 'get:42') throw new Error('GET did not use its named export')",
+          "if (get.headers.get('x-controller') !== 'api') throw new Error('Missing controller middleware')",
+          '',
+          "let head = await router.fetch('http://test/api/42', { method: 'HEAD' })",
+          "if (head.headers.get('x-handler') !== 'head') throw new Error('HEAD did not use its named export')",
+          '',
+          "let post = await router.fetch('http://test/api/42', { method: 'POST' })",
+          "if ((await post.text()) !== 'post:42') throw new Error('POST did not use its named export')",
+          "if (post.headers.get('x-action') !== 'post') throw new Error('Missing action middleware')",
+          "if (post.headers.get('x-controller') !== 'api') throw new Error('Missing controller middleware')",
+          '',
+          "let put = await router.fetch('http://test/api/42', { method: 'PUT' })",
+          "if ((await put.text()) !== 'put:42') throw new Error('PUT did not use its named export')",
+          '',
+          "let patch = await router.fetch('http://test/api/42', { method: 'PATCH' })",
+          "if ((await patch.text()) !== 'patch:42') throw new Error('PATCH did not use its named export')",
+          '',
+          "let remove = await router.fetch('http://test/api/42', { method: 'DELETE' })",
+          "if ((await remove.text()) !== 'delete:42') throw new Error('DELETE did not use its named export')",
+          '',
+          "let options = await router.fetch('http://test/api/42', { method: 'OPTIONS' })",
+          "if (options.status !== 204) throw new Error('OPTIONS did not use its named export')",
+          '',
+          "let fallback = await router.fetch('http://test/api/42', { method: 'PROPFIND' })",
+          "if ((await fallback.text()) !== 'any:PROPFIND') throw new Error('A custom method did not use the default export')",
+          '',
+          "let missing = await router.fetch('http://test/health', { method: 'POST' })",
+          "if (missing.status !== 404) throw new Error('A method-only route should not catch other methods')",
+          '',
+          "for (let method of ['connect', 'trace'] as const) {",
+          '  try {',
+          '    registerRouteModule(router, routes["api.$id"], { [method]: () => new Response() })',
+          '  } catch (error) {',
+          '    if (error instanceof TypeError && error.message.includes(method.toUpperCase())) continue',
+          '    throw error',
+          '  }',
+          '  throw new Error(`${method.toUpperCase()} should be rejected explicitly`)',
+          '}',
+          '',
+        ].join('\n'),
+      )
+      await writeFile(
+        path.join(cwd, 'tsconfig.json'),
+        `${JSON.stringify(
+          {
+            compilerOptions: {
+              target: 'ES2022',
+              module: 'NodeNext',
+              moduleResolution: 'NodeNext',
+              strict: true,
+              skipLibCheck: true,
+              allowJs: true,
+              checkJs: false,
+              allowImportingTsExtensions: true,
+              rewriteRelativeImportExtensions: true,
+              rootDir: '.',
+              outDir: 'dist',
+            },
+            include: ['app/**/*'],
+          },
+          null,
+          2,
+        )}\n`,
+      )
+
+      await execFileAsync(path.join(repositoryDirectory, 'node_modules/.bin/tsc'), [
+        '--project',
+        path.join(cwd, 'tsconfig.json'),
+      ])
+      await execFileAsync(process.execPath, [path.join(cwd, 'dist/app/router.js')])
+    } finally {
+      await rm(cwd, { recursive: true, force: true })
+    }
   })
 
   it('writes atomically and reports stale artifacts', async () => {
@@ -179,7 +333,7 @@ describe('route artifact generation', () => {
 
     let about = path.join(cwd, 'app/routes/about')
     await mkdir(about)
-    await writeFile(path.join(about, 'action.ts'), 'export default () => new Response()\n')
+    await writeFile(path.join(about, 'actions.ts'), 'export default () => new Response()\n')
     let stale = await writeRouteArtifacts({ cwd, check: true })
     expect(stale.changed).toBe(true)
     expect(stale.artifacts.find((artifact) => artifact.kind === 'routes')?.changed).toBe(true)
@@ -202,7 +356,7 @@ describe('route artifact generation', () => {
     let cwd = await project()
     let optionalRoute = path.join(cwd, 'app/routes/($lang).hello')
     await mkdir(optionalRoute)
-    await writeFile(path.join(optionalRoute, 'action.ts'), 'export default () => new Response()\n')
+    await writeFile(path.join(optionalRoute, 'actions.ts'), 'export default () => new Response()\n')
 
     let generated = await generateRouteArtifacts({ cwd })
     let routes = generated.artifacts.find((artifact) => artifact.kind === 'routes')!

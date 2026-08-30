@@ -2,7 +2,7 @@ import { page } from '#/actions/page.tsx'
 import { href } from '#/routes.ts'
 import { createAction } from './+route.ts'
 
-export default createAction(({ params, render }) => {
+export let get = createAction(({ params, render }) => {
   // @ts-expect-error params is typed based on the route folder path
   void params.missing
 
@@ -17,4 +17,12 @@ export default createAction(({ params, render }) => {
       </>,
     ),
   )
+})
+
+export let post = createAction(({ params }) => {
+  return new Response(`Created post: ${params.slug}`, { status: 201 })
+})
+
+export default createAction(({ params, request }) => {
+  return new Response(`Fallback for ${request.method}: ${params.slug}`)
 })

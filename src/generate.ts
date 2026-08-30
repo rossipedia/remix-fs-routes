@@ -173,53 +173,31 @@ function generateControllerSource(
 ): string {
   let actionImports = manifest.routes.map((entry, index) => {
     let routeModule = path.resolve(appDirectory, entry.file)
-    return `import routeAction${index} from ${JSON.stringify(relativeImport(output, routeModule))}`
+    return `import * as routeModule${index} from ${JSON.stringify(relativeImport(output, routeModule))}`
   })
   let controllerImports = manifest.controllers.map((entry, index) => {
     let controllerModule = path.resolve(appDirectory, entry.file)
     return `import routeController${index} from ${JSON.stringify(relativeImport(output, controllerModule))}`
   })
-  let groups = groupRoutesByController(manifest)
-  let groupDeclarations = groups.flatMap((group, groupIndex) => {
-    let definitions = group.routes
-      .map(
-        (entry) =>
-          `  ${JSON.stringify(entry.id)}: ${routesExportName}[${JSON.stringify(entry.id)}],`,
-      )
-      .join('\n')
-    return [`const routeGroup${groupIndex} = {`, definitions, '}', '']
-  })
-  let registrations = groups.flatMap((group, groupIndex) => {
-    let middleware = group.controllerIds.map((id) => {
+  let registrations = manifest.routes.flatMap((entry, routeIndex) => {
+    let middleware = entry.controllerIds.map((id) => {
       let controllerIndex = manifest.controllers.findIndex((entry) => entry.id === id)
-      return `      ...routeController${controllerIndex}.middleware,`
+      return `    ...routeController${controllerIndex}.middleware,`
     })
-    let actions = group.routes
-      .map((entry) => {
-        let routeIndex = manifest.routes.findIndex((route) => route.id === entry.id)
-        return `      ${JSON.stringify(entry.id)}: routeAction${routeIndex},`
-      })
-      .join('\n')
-    return [
-      `  router.map(routeGroup${groupIndex}, createController(routeGroup${groupIndex}, {`,
-      ...(middleware.length > 0 ? ['    middleware: [', ...middleware, '    ],'] : []),
-      '    actions: {',
-      actions,
-      '    },',
-      '  }))',
-    ]
+    let call = `  registerRouteModule(router, ${routesExportName}[${JSON.stringify(entry.id)}], routeModule${routeIndex}`
+    return middleware.length > 0 ? [call + ', [', ...middleware, '  ])'] : [call + ')']
   })
   let typescript = isTypeScriptOutput(output)
   return [
     generatedFileHeader,
     typescript
-      ? "import { createController, type RequestContext, type RouteBuilder, type RouterTypes } from 'remix/router'"
-      : "import { createController } from 'remix/router'",
+      ? "import { type RequestContext, type RouteBuilder, type RouterTypes } from 'remix/router'"
+      : '',
+    `import { registerRouteModule } from ${JSON.stringify(relativeImport(output, getRouteSupportOutput(routesOutput)))}`,
     `import { ${routesExportName} } from ${JSON.stringify(relativeImport(output, routesOutput))}`,
     ...actionImports,
     ...controllerImports,
     '',
-    ...groupDeclarations,
     ...(typescript
       ? [
           'type DefaultContext = RouterTypes extends {',
@@ -297,6 +275,21 @@ function generateControllerModuleSource(output: string, supportOutput: string): 
 function generateRouteSupportSource(): string {
   return [
     generatedFileHeader,
+    'const routeMethods = {',
+    "  get: 'GET',",
+    "  head: 'HEAD',",
+    "  post: 'POST',",
+    "  put: 'PUT',",
+    "  patch: 'PATCH',",
+    "  delete: 'DELETE',",
+    "  options: 'OPTIONS',",
+    '}',
+    '',
+    'const unsupportedRouteMethods = {',
+    "  connect: 'CONNECT',",
+    "  trace: 'TRACE',",
+    '}',
+    '',
     'export function createRouteAction() {',
     '  return (handlerOrOptions) => {',
     "    if (typeof handlerOrOptions === 'function') return handlerOrOptions",
@@ -306,6 +299,35 @@ function generateRouteSupportSource(): string {
     '',
     'export function createRouteController() {',
     '  return (options) => options',
+    '}',
+    '',
+    'export function registerRouteModule(router, route, routeModule, middleware = []) {',
+    '  for (let name in unsupportedRouteMethods) {',
+    '    if (Object.hasOwn(routeModule, name)) {',
+    '      throw new TypeError(',
+    '        `Route module export "${name}" cannot be registered: the Fetch Request API and Remix router do not support ${unsupportedRouteMethods[name]} requests.`,',
+    '      )',
+    '    }',
+    '  }',
+    '',
+    '  for (let name in routeMethods) {',
+    '    if (Object.hasOwn(routeModule, name)) {',
+    '      router.route(routeMethods[name], route, mergeActionMiddleware(routeModule[name], middleware))',
+    '    }',
+    '  }',
+    '',
+    "  if (Object.hasOwn(routeModule, 'default')) {",
+    '    router.map(route, mergeActionMiddleware(routeModule.default, middleware))',
+    '  }',
+    '}',
+    '',
+    'function mergeActionMiddleware(action, middleware) {',
+    '  if (middleware.length === 0) return action',
+    "  if (typeof action === 'function') return { handler: action, middleware }",
+    '  return {',
+    '    ...action,',
+    '    middleware: [...middleware, ...(action.middleware ?? [])],',
+    '  }',
     '}',
     '',
   ].join('\n')
@@ -320,6 +342,7 @@ function generateRouteSupportTypesSource(): string {
     '  MiddlewareContext,',
     '  RequestContext,',
     '  RequestHandler,',
+    '  RouteBuilder,',
     '  RouterTypes,',
     "} from 'remix/router'",
     "import type { Route } from 'remix/routes'",
@@ -372,6 +395,24 @@ function generateRouteSupportTypesSource(): string {
     '}',
     '',
     'export declare function createRouteController(): RouteControllerFactory',
+    '',
+    "export type RouteMethodExport = 'get' | 'head' | 'post' | 'put' | 'patch' | 'delete' | 'options'",
+    "export type UnsupportedRouteMethodExport = 'connect' | 'trace'",
+    'export type StandardRouteMethodExport = RouteMethodExport | UnsupportedRouteMethodExport',
+    'export type RouteActionModule = {',
+    '  default?: unknown',
+    '} & Partial<Record<StandardRouteMethodExport, unknown>>',
+    '',
+    'export declare function registerRouteModule<',
+    '  context extends RequestContext<any, any>,',
+    '  route extends ActionRoute,',
+    '  const middleware extends readonly AnyMiddleware[] = [],',
+    '>(',
+    '  router: RouteBuilder<context>,',
+    '  route: route,',
+    '  routeModule: RouteActionModule,',
+    '  middleware?: readonly [...middleware],',
+    '): void',
     '',
   ].join('\n')
 }
@@ -426,22 +467,6 @@ function generateVirtualTypesSource(
     '}',
     '',
   ].join('\n')
-}
-
-interface RouteGroup {
-  controllerIds: string[]
-  routes: RouteManifestEntry[]
-}
-
-function groupRoutesByController(manifest: RouteManifest): RouteGroup[] {
-  let groups = new Map<string, RouteGroup>()
-  for (let route of manifest.routes) {
-    let key = route.controllerIds.at(-1) ?? ''
-    let group = groups.get(key) ?? { controllerIds: route.controllerIds, routes: [] }
-    group.routes.push(route)
-    groups.set(key, group)
-  }
-  return [...groups.values()]
 }
 
 function absolutePattern(pattern: string): string {

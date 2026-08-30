@@ -19,7 +19,7 @@ async function fixture(files: string[]): Promise<string> {
 }
 
 function folders(ids: string[]): string[] {
-  return ids.map((id) => `${id}/action.ts`)
+  return ids.map((id) => `${id}/actions.ts`)
 }
 
 describe('scanRoutes', () => {
@@ -76,13 +76,13 @@ describe('scanRoutes', () => {
   it('discovers logical controller boundaries and assigns routes to their ancestry', async () => {
     let cwd = await fixture([
       '_auth/controller.ts',
-      '_auth.login/action.ts',
-      'admin/action.ts',
+      '_auth.login/actions.ts',
+      'admin/actions.ts',
       'admin/controller.tsx',
-      'admin.users/action.ts',
+      'admin.users/actions.ts',
       'admin.projects/controller.mts',
-      'admin.projects.settings/action.ts',
-      'admin_.health/action.ts',
+      'admin.projects.settings/actions.ts',
+      'admin_.health/actions.ts',
     ])
 
     let manifest = await scanRoutes({ cwd })
@@ -104,30 +104,30 @@ describe('scanRoutes', () => {
     })
   })
 
-  it('accepts action entrypoints without scanning colocated files', async () => {
+  it('accepts actions entrypoints without scanning colocated files', async () => {
     let cwd = await fixture([
-      'account/action.tsx',
+      'account/actions.tsx',
       'account/component.tsx',
-      'settings/action.ts',
+      'settings/actions.ts',
       'settings/helper.ts',
       'ignored/route.mdx',
     ])
 
     let manifest = await scanRoutes({ cwd })
     expect(manifest.routes.map(({ id, file }) => ({ id, file }))).toEqual([
-      { id: 'account', file: 'routes/account/action.tsx' },
-      { id: 'settings', file: 'routes/settings/action.ts' },
+      { id: 'account', file: 'routes/account/actions.tsx' },
+      { id: 'settings', file: 'routes/settings/actions.ts' },
     ])
   })
 
   it('accepts every executable JavaScript and TypeScript module extension', async () => {
     let extensions = ['js', 'jsx', 'mjs', 'cjs', 'ts', 'tsx', 'mts', 'cts']
-    let cwd = await fixture(extensions.map((extension) => `${extension}/action.${extension}`))
+    let cwd = await fixture(extensions.map((extension) => `${extension}/actions.${extension}`))
 
     let manifest = await scanRoutes({ cwd })
     expect(manifest.routes.map(({ id, file }) => ({ id, file }))).toEqual(
       extensions
-        .map((extension) => ({ id: extension, file: `routes/${extension}/action.${extension}` }))
+        .map((extension) => ({ id: extension, file: `routes/${extension}/actions.${extension}` }))
         .sort((a, b) => a.id.localeCompare(b.id)),
     )
   })
@@ -158,7 +158,7 @@ describe('scanRoutes', () => {
     let cwd = await fixture(folders(['home', 'admin', '.hidden']))
     let manifest = await scanRoutes({
       cwd,
-      ignoredRouteFiles: ['home', 'routes/admin/action.ts'],
+      ignoredRouteFiles: ['home', 'routes/admin/actions.ts'],
     })
     expect(manifest.routes).toEqual([])
   })
@@ -179,11 +179,16 @@ describe('scanRoutes', () => {
 
     let legacy = await fixture(['account/route.tsx'])
     await expect(scanRoutes({ cwd: legacy })).rejects.toThrow(
-      'rename the route module to one of: action.js',
+      'rename the route module to one of: actions.js',
     )
 
-    let folderConflict = await fixture(['account/action.mts', 'account/action.cjs'])
-    await expect(scanRoutes({ cwd: folderConflict })).rejects.toThrow('multiple action modules')
+    let singular = await fixture(['account/action.ts'])
+    await expect(scanRoutes({ cwd: singular })).rejects.toThrow(
+      'rename the route module to one of: actions.js',
+    )
+
+    let folderConflict = await fixture(['account/actions.mts', 'account/actions.cjs'])
+    await expect(scanRoutes({ cwd: folderConflict })).rejects.toThrow('multiple "actions" modules')
 
     let controllerConflict = await fixture(['account/controller.mts', 'account/controller.cjs'])
     await expect(scanRoutes({ cwd: controllerConflict })).rejects.toThrow(

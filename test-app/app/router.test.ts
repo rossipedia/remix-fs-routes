@@ -63,10 +63,17 @@ describe('shared generated route modules', () => {
   it('provides typed dynamic parameters to route actions', async () => {
     let router = createAppRouter()
     let postHref = href('/posts/:slug', { slug: 'typed-routes' })
-    let response = await router.fetch(new Request(`http://test${postHref}`))
+    let [getResponse, postResponse, fallbackResponse] = await Promise.all([
+      router.fetch(new Request(`http://test${postHref}`)),
+      router.fetch(new Request(`http://test${postHref}`, { method: 'POST' })),
+      router.fetch(new Request(`http://test${postHref}`, { method: 'PATCH' })),
+    ])
 
-    assert.equal(response.status, 200)
-    assert.match(await response.text(), /Post: typed-routes/)
+    assert.equal(getResponse.status, 200)
+    assert.match(await getResponse.text(), /Post: typed-routes/)
+    assert.equal(postResponse.status, 201)
+    assert.equal(await postResponse.text(), 'Created post: typed-routes')
+    assert.equal(await fallbackResponse.text(), 'Fallback for PATCH: typed-routes')
   })
 
   it('distinguishes routes with and without a trailing slash', async () => {

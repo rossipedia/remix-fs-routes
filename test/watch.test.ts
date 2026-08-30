@@ -15,7 +15,10 @@ describe('watchRouteArtifacts', () => {
     let cwd = await mkdtemp(path.join(tmpdir(), 'remix-fs-routes-type-watch-'))
     let indexDirectory = path.join(cwd, 'app/routes/_index')
     await mkdir(indexDirectory, { recursive: true })
-    await writeFile(path.join(indexDirectory, 'action.ts'), 'export default () => new Response()\n')
+    await writeFile(
+      path.join(indexDirectory, 'actions.ts'),
+      'export default () => new Response()\n',
+    )
 
     let watcher = await watchRouteTypes({ cwd, pollingIntervalMs: 20 })
     try {
@@ -34,7 +37,10 @@ describe('watchRouteArtifacts', () => {
     let cwd = await mkdtemp(path.join(tmpdir(), 'remix-fs-routes-watch-'))
     let indexDirectory = path.join(cwd, 'app/routes/_index')
     await mkdir(indexDirectory, { recursive: true })
-    await writeFile(path.join(indexDirectory, 'action.ts'), 'export default () => new Response()\n')
+    await writeFile(
+      path.join(indexDirectory, 'actions.ts'),
+      'export default () => new Response()\n',
+    )
 
     let waitForResult: ((result: WriteRouteArtifactsResult) => boolean) | undefined
     let resolveResult: ((result: WriteRouteArtifactsResult) => void) | undefined
@@ -67,7 +73,7 @@ describe('watchRouteArtifacts', () => {
 
     try {
       let aboutDirectory = path.join(cwd, 'app/routes/about')
-      let aboutModule = path.join(aboutDirectory, 'action.ts')
+      let aboutModule = path.join(aboutDirectory, 'actions.ts')
       let added = nextResult((result) =>
         result.manifest.routes.some((route) => route.id === 'about'),
       )
@@ -148,7 +154,7 @@ describe('watchRouteArtifacts', () => {
       let aboutDirectory = path.join(routesDirectory, 'about')
       await mkdir(aboutDirectory)
       await writeFile(
-        path.join(aboutDirectory, 'action.ts'),
+        path.join(aboutDirectory, 'actions.ts'),
         'export default () => new Response()\n',
       )
       await recovered

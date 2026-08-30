@@ -449,7 +449,7 @@ async function createProject(
     path.join(projectDirectory, 'app/entry.ts'),
     integration.cli ? cliEntry : appEntry,
   )
-  await writeFile(path.join(projectDirectory, 'app/routes/_index/action.ts'), routeAction)
+  await writeFile(path.join(projectDirectory, 'app/routes/_index/actions.ts'), routeAction)
 
   for (let [file, source] of Object.entries(integration.files ?? {})) {
     let output = path.join(projectDirectory, file)
