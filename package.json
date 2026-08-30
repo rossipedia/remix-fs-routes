@@ -16,6 +16,9 @@
     "type": "git",
     "url": "git+https://github.com/rossipedia/remix-fs-routes.git"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "homepage": "https://github.com/rossipedia/remix-fs-routes#readme",
   "bugs": {
     "url": "https://github.com/rossipedia/remix-fs-routes/issues"
