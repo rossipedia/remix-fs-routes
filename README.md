@@ -12,7 +12,7 @@ Rolldown, webpack, Rspack, Rsbuild, esbuild, Farm, and Bun.
 >
 > Does that make me somewhat hypocritical? Possibly. But it's a weird world. I'm still navigating my way through this mess, and sometimes a hypocrite is a person who's going through change.
 >
-> Do with that as you will. If you choose not to consume this package because of that, I understand (_believe me_, I do) and hold no ill will.
+> Do with that as you will. If you choose not to consume this package because of that, I understand (_believe me_, I do) and wish you well.
 >
 > The rest of this readme was produced via LLM. This note, however, is 100% my own words.
 
