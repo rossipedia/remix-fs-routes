@@ -113,9 +113,12 @@ export const unpluginFactory: UnpluginFactory<RemixFsRoutesPluginOptions | undef
       },
     },
     rollup: {
-      async options(inputOptions) {
-        await queueRefresh()
-        return inputOptions
+      options: {
+        order: 'pre',
+        async handler(inputOptions) {
+          await queueRefresh()
+          return inputOptions
+        },
       },
     },
     esbuild: {

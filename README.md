@@ -186,6 +186,25 @@ The other adapters use the same API:
 | Farm     | `remix-fs-routes/farm`     |
 | Bun      | `remix-fs-routes/bun`      |
 
+### Rollup sequencing
+
+The Rollup adapter still performs route code generation and virtual-module resolution, but Rollup
+does not transform TypeScript itself. If you use `@rollup/plugin-typescript`, generate the route
+files before starting Rollup so that the TypeScript plugin includes them in its compiler program:
+
+```sh
+pnpm exec remix-fs-routes generate
+pnpm exec rollup --config rollup.config.js
+```
+
+Keep `remix-fs-routes/rollup` before `@rollup/plugin-typescript` in the plugin list. Do not rely on
+the adapter's in-build generation to make newly created `.ts` files visible to the TypeScript
+plugin; after adding or removing routes, rerun `generate` and restart the Rollup process. Other
+Rollup TypeScript transforms may not have this limitation.
+
+If you want route generation integrated into the bundler lifecycle without this sequencing
+constraint, prefer the `remix-fs-routes/rolldown` adapter.
+
 Bundler watch and development modes automatically regenerate routes when files change.
 
 ## Use the CLI

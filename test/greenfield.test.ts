@@ -116,26 +116,6 @@ export default defineConfig({
     },
   },
   {
-    name: 'rollup',
-    build: 'rollup --config rollup.config.js',
-    devDependencies: ['rollup', '@rollup/plugin-typescript', 'tslib'],
-    files: {
-      'rollup.config.js': `import typescript from '@rollup/plugin-typescript'
-import remixFsRoutes from 'remix-fs-routes/rollup'
-
-export default {
-  input: 'app/entry.ts',
-  external: [/^node:/, /^remix\\//],
-  plugins: [
-    remixFsRoutes(),
-    typescript({ compilerOptions: { rewriteRelativeImportExtensions: true } }),
-  ],
-  output: { file: 'dist/bundle.mjs', format: 'esm' },
-}
-`,
-    },
-  },
-  {
     name: 'rolldown',
     build: 'rolldown --config rolldown.config.ts',
     devDependencies: ['rolldown'],
